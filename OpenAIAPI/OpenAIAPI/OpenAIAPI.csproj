@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="xcopy /q /y &quot;$(SolutionDir).openai&quot; &quot;$(TargetDir)&quot;" />
+    <Exec Command="xcopy /q /y &quot;$(SolutionDir)../.openai&quot; &quot;$(TargetDir)&quot;" />
   </Target>
 
 </Project>
