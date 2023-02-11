@@ -29,6 +29,9 @@ namespace VRWorld
             string textInput = "";
             Task<CompletionResult> generateTask = null;
 
+            //Microphone
+            bool record = false;
+
             //GameObjects are stored in a list
             int myIdCounter = 0;
             List<VRWorld.Object> objects = new List<VRWorld.Object>();
@@ -45,9 +48,15 @@ namespace VRWorld
                 if (SK.System.displayType == Display.Opaque)
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
-                UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(20, 0) * U.cm);
+                UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(30, 0) * U.cm);
                 UI.Text(aiText);
                 UI.Input("Input", ref textInput);
+
+                UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
+                UI.Toggle("record mic", ref record);
+                UI.PopTint();
+
+                UI.SameLine();
                 if (UI.Button("Submit text"))
                 {
                     aiText += textInput + startSequence;
