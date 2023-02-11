@@ -1,8 +1,9 @@
 using StereoKit;
 using System;
-using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
-namespace CreateWorldWithAI
+namespace VRWorld
 {
     internal class Program
     {
@@ -16,6 +17,14 @@ namespace CreateWorldWithAI
             };
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
+
+            var JObject = new JObject();
+            JObject.Add("position", VRWorld.JSONConverter.ToJSON(new Vec3(1, 2, 3)));
+            JObject.Add("shape", new JValue("cube"));
+            JObject.Add("color", VRWorld.JSONConverter.ToJSON(new Color(0.1f, 0.2f, 0.3f)));
+
+            var obj = new VRWorld.Object(0, JObject);
+
 
             Matrix floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
             Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
