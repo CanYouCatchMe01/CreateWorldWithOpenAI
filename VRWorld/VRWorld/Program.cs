@@ -23,7 +23,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(); //loads the API key from the .openai file that is in the same directory as the .exe
-            string aiText = "Create a json block from prompt.\nExample:\ntext: Create a blue cube at position one one one\njson: {\"id:\" 0, \"position\" : {\"x\" : 1, \"y\" : 1, \"z\" : 1}, \"shape\" : \"cube\", \"color\" : {\"r\" : 0.0, \"g\" : 0.0, \"b\" : 1.0}}\nReal start with id 0:\ntext: ";
+            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 1, \"y\": 1, \"z\": 1}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
             string textInput = "";
@@ -33,27 +33,11 @@ namespace VRWorld
             int myIdCounter = 0;
             List<VRWorld.Object> objects = new List<VRWorld.Object>();
 
-            var JObj = new JObject();
-            JObj.Add("position", VRWorld.JSONConverter.ToJSON(new Vec3(1, 0, -1)));
-            JObj.Add("shape", new JValue("cube"));
-            JObj.Add("color", VRWorld.JSONConverter.ToJSON(new Color(0.1f, 0.2f, 0.3f)));
-
-            objects.Add(new VRWorld.Object(myIdCounter++, JObj));
-            JObj["position"] = VRWorld.JSONConverter.ToJSON(new Vec3(1.0f, 0.2f, 0.3f));
-            JObj["color"] = VRWorld.JSONConverter.ToJSON(new Color(1.0f, 0.2f, 0.3f));
-            objects.Add(new VRWorld.Object(myIdCounter++, JObj));
-
             Matrix floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
             Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
             floorMaterial.Transparency = Transparency.Blend;
 
             Pose windowPose = new Pose(0, 0, -0.5f, Quat.LookDir(0, 0, 1));
-
-            //var task = Task.Run(async () =>
-            //{
-            //    var api = new OpenAI_API.OpenAIAPI();
-            //    var result = await api.Completions.GetCompletion("One Two Three One Two", );
-            //});
 
             // Core application loop
             while (SK.Step(() =>
@@ -108,7 +92,42 @@ namespace VRWorld
 
         static void HandleAIResponce(string aResponce, List<VRWorld.Object> someObjects, int someIdCounter)
         {
-            
+            JObject JResponce = JObject.Parse(aResponce);
+            int id = (int)JResponce.GetValue("id");
+
+            //Remove
+            JResponce.TryGetValue("remove", out JToken JRemove);
+            if (JRemove != null && (bool)JRemove)
+            {
+                for (int i = 0; i < someObjects.Count; i++)
+                {
+                    if (someObjects[i].myId == id)
+                    {
+                        int lastIndex = someObjects.Count - 1;
+                        someObjects[i] = someObjects[lastIndex];
+                        someObjects.RemoveAt(lastIndex);
+                        break;
+                    }
+                }
+            }
+            else //Update or add new object
+            {
+                bool foundObject = false;
+                for (int i = 0; i < someObjects.Count; i++)
+                {
+                    if (someObjects[i].myId == id)
+                    {
+                        someObjects[i].UpdateFromJSON(JResponce);
+                        foundObject = true;
+                        break;
+                    }
+                }
+
+                if (!foundObject) //Create a new object
+                {
+                    someObjects.Add(new VRWorld.Object(id, JResponce));
+                }
+            }
         }
     }
 }

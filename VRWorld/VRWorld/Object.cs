@@ -5,7 +5,7 @@ namespace VRWorld
 {
     internal class Object
     {
-        int myId;
+        public int myId { get; }
         Model myModel;
         Color myColor;
         Pose myPose = Pose.Identity;
@@ -18,7 +18,7 @@ namespace VRWorld
             UpdateFromJSON(someData);
         }
 
-        void UpdateFromJSON(JObject someData)
+        public void UpdateFromJSON(JObject someData)
         {
             someData.TryGetValue("position", out JToken JPos);
             someData.TryGetValue("shape", out JToken JShape);
