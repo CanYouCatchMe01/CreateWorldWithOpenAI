@@ -2,6 +2,7 @@ using StereoKit;
 using System;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace VRWorld
 {
@@ -18,13 +19,18 @@ namespace VRWorld
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
 
-            var JObject = new JObject();
-            JObject.Add("position", VRWorld.JSONConverter.ToJSON(new Vec3(1, 2, 3)));
-            JObject.Add("shape", new JValue("cube"));
-            JObject.Add("color", VRWorld.JSONConverter.ToJSON(new Color(0.1f, 0.2f, 0.3f)));
+            int myIdCounter = 0;
+            List<VRWorld.Object> objects = new List<VRWorld.Object>();
 
-            var obj = new VRWorld.Object(0, JObject);
+            var JObj = new JObject();
+            JObj.Add("position", VRWorld.JSONConverter.ToJSON(new Vec3(1, 0, -1)));
+            JObj.Add("shape", new JValue("cube"));
+            JObj.Add("color", VRWorld.JSONConverter.ToJSON(new Color(0.1f, 0.2f, 0.3f)));
 
+            objects.Add(new VRWorld.Object(myIdCounter++, JObj));
+            JObj["position"] = VRWorld.JSONConverter.ToJSON(new Vec3(1.0f, 0.2f, 0.3f));
+            JObj["color"] = VRWorld.JSONConverter.ToJSON(new Color(1.0f, 0.2f, 0.3f));
+            objects.Add(new VRWorld.Object(myIdCounter++, JObj));
 
             Matrix floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
             Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
@@ -54,7 +60,12 @@ namespace VRWorld
                     textInput = ""; //Clear input
                 }
                 UI.WindowEnd();
-            })) ;
+
+                foreach(VRWorld.Object o in objects)
+                {
+                    o.Draw();
+                }
+            }));
             SK.Shutdown();
         }
     }

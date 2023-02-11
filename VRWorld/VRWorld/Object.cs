@@ -7,15 +7,19 @@ namespace VRWorld
     {
         int myId;
         Model myModel;
-        Material myMaterial;
-        Pose myPose;
+        Color myColor;
+        Pose myPose = Pose.Identity;
         string myShape; //Can be "cube", "cylinder", "plane", "rounded cube". See generate funcitons at https://stereokit.net/Pages/StereoKit/Mesh.html
 
         public Object(int anId, JObject someData) //JObject is a JSON object
         {
             myId = anId;
-            myMaterial = new Material(Shader.UI);
 
+            UpdateFromJSON(someData);
+        }
+
+        void UpdateFromJSON(JObject someData)
+        {
             someData.TryGetValue("position", out JToken JPos);
             someData.TryGetValue("shape", out JToken JShape);
             someData.TryGetValue("color", out JToken JColor);
@@ -33,11 +37,11 @@ namespace VRWorld
 
                 if (str == "cube")
                 {
-                    myModel = Model.FromMesh(Mesh.Cube, myMaterial);
+                    myModel = Model.FromMesh(Mesh.Cube, Material.UI);
                 }
                 else if (str == "sphere")
                 {
-                    myModel = Model.FromMesh(Mesh.Sphere, myMaterial);
+                    myModel = Model.FromMesh(Mesh.Sphere, Material.UI);
                 }
                 //continue with more meshes
             }
@@ -45,8 +49,24 @@ namespace VRWorld
             if (JColor != null)
             {
                 Color color = JSONConverter.FromJSONColor((JObject)JColor);
-                myMaterial.SetColor("color", color);
+                myColor = color;
             }
+        }
+
+        JObject ToJson()
+        {
+            JObject result = new JObject();
+            result.Add("id", myId);
+            result.Add("position", JSONConverter.ToJSON(myPose.position));
+            result.Add("shape", myShape);
+            result.Add("color", JSONConverter.ToJSON(myColor));
+
+            return result;
+        }
+
+        public void Draw()
+        {
+            myModel.Draw(myPose.ToMatrix(), myColor);
         }
     }
 }
