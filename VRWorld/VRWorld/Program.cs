@@ -80,7 +80,7 @@ namespace VRWorld
                     prompt: aPrompt,
                     model: OpenAI_API.Models.Model.CushmanCode,
                     temperature: 0.1,
-                    max_tokens: 1000,
+                    max_tokens: 256,
                     top_p: 1.0,
                     frequencyPenalty: 0.0,
                     presencePenalty: 0.0,
