@@ -87,7 +87,11 @@ namespace VRWorld
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
                 UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(30, 0) * U.cm);
-                UI.Text(aiText);
+
+                //Get the 200 last characters of aiText
+                int showLength = 1000;
+                string showText = aiText.Length > showLength ? "..." + aiText.Substring(aiText.Length - showLength - 3) : aiText;
+                UI.Text(showText);
 
                 if (speechAIText == "") //no AI speech == can edit text
                 {
@@ -165,7 +169,10 @@ namespace VRWorld
 
             //Remove
             JResponce.TryGetValue("remove", out JToken JRemove);
-            if (JRemove != null && (bool)JRemove)
+            JResponce.TryGetValue("delete", out JToken JDelete);
+            bool remove = JRemove != null && (bool)JRemove;
+            bool delete = JDelete != null && (bool)JDelete;
+            if (remove || delete)
             {
                 for (int i = 0; i < someObjects.Count; i++)
                 {
