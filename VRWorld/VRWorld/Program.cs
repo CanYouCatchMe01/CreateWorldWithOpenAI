@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using OpenAI_API.Completions;
+using Microsoft.Extensions.Configuration;
 
 namespace VRWorld
 {
@@ -21,8 +22,13 @@ namespace VRWorld
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
 
+            //Secrets which are not in the repo. Right click on C# project in Solution Explorer -> Manage User Secrets -> Add "OPENAI_API_KEY": your_key
+            var builder = new ConfigurationBuilder().AddUserSecrets<Program>();
+            var configurationRoot = builder.Build();
+            string openAiKey = configurationRoot.GetSection("OPENAI_API_KEY").Value;
+
             //Open AI
-            var api = new OpenAI_API.OpenAIAPI(); //loads the API key from the .openai file that is in the same directory as the .exe
+            var api = new OpenAI_API.OpenAIAPI(openAiKey);
             string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 0.1, \"y\": 0.1, \"z\": 0.1}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";

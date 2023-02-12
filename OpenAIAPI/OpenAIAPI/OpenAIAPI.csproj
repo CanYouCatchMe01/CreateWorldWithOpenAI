@@ -5,14 +5,12 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>974c3199-88e5-4cbc-b18b-e66191272ff8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
     <PackageReference Include="OpenAI" Version="1.4.0" />
   </ItemGroup>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="xcopy /q /y &quot;$(SolutionDir)../.openai&quot; &quot;$(TargetDir)&quot;" />
-  </Target>
 
 </Project>
