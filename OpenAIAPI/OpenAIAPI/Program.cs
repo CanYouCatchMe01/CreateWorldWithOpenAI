@@ -25,6 +25,7 @@ namespace Program
                 Task.Delay(1000).Wait();
             }
             Console.WriteLine(task.Result);
+            Console.ReadLine();
         }
         
         static async Task<string> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi, string aPrompt)
