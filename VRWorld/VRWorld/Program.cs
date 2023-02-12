@@ -5,6 +5,8 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using OpenAI_API.Completions;
+using Microsoft.CognitiveServices.Speech;
+using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.Extensions.Configuration;
 
 namespace VRWorld
@@ -31,11 +33,42 @@ namespace VRWorld
             string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 0.1, \"y\": 0.1, \"z\": 0.1}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
-            string textInput = "";
             Task<CompletionResult> generateTask = null;
 
-            //Microphone
-            bool record = false;
+            //Microphone and text
+            bool record = true;
+            string textInput = "";
+            string speechAIText = "";
+
+            //Azure speech to text AI
+            string speechKey = config.GetSection("SPEECH_KEY").Value;
+            string speechRegion = config.GetSection("SPEECH_REGION").Value;
+
+            var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
+            speechConfig.SpeechRecognitionLanguage = "en-US";
+
+            using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+            using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+            speechRecognizer.Recognizing += (s, e) =>
+            {
+                speechAIText = e.Result.Text;
+            };
+
+            speechRecognizer.Recognized += (s, e) =>
+            {
+                textInput += speechAIText;
+                speechAIText = "";
+            };
+
+            if (record)
+            {
+                speechRecognizer.StartContinuousRecognitionAsync().Wait();
+            }
+            else
+            {
+                speechRecognizer.StopContinuousRecognitionAsync().Wait();
+            }
 
             //GameObjects are stored in a list
             int myIdCounter = 0;
@@ -55,10 +88,30 @@ namespace VRWorld
 
                 UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(30, 0) * U.cm);
                 UI.Text(aiText);
-                UI.Input("Input", ref textInput);
+
+                if (speechAIText == "") //no AI speech == can edit text
+                {
+                    UI.Input("Input", ref textInput);
+                }
+                else //AI speech can not edit text
+                {
+                    string sum = textInput + speechAIText;
+                    UI.Input("Input", ref sum);
+                }
 
                 UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
-                UI.Toggle("record mic", ref record);
+                if (UI.Toggle("record mic", ref record))
+                {
+                    if (record)
+                    {
+                        speechRecognizer.StartContinuousRecognitionAsync().Wait();
+                    }
+                    else
+                    {
+                        speechRecognizer.StopContinuousRecognitionAsync().Wait();
+                    }
+                }
+                
                 UI.PopTint();
 
                 UI.SameLine();
@@ -86,6 +139,7 @@ namespace VRWorld
                 }
             }));
             SK.Shutdown();
+            speechRecognizer.StopContinuousRecognitionAsync().Wait(); //Need to call, else slow shutdown
         }
 
         static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi, string aPrompt)

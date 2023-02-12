@@ -44,6 +44,17 @@ class Program
         using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
         using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
+        speechRecognizer.SpeechStartDetected += (s, e) =>
+        {
+            Console.WriteLine("SpeechStartDetected");
+        };
+
+        speechRecognizer.SpeechEndDetected += (s, e) =>
+        {
+            Console.WriteLine("SpeechEndDetected");
+        };
+
+
         speechRecognizer.Recognizing += (s, e) =>
         {
             Console.WriteLine($"Recognizing: {e.Result.Text}");
