@@ -79,7 +79,11 @@ namespace VRWorld
 
         public void Draw()
         {
-            myModel.Draw(myPose.ToMatrix() * Matrix.S(myScale), myColor);
+            Vec3 worldPositionOffset = new Vec3(0, -0.5f, -1);
+            Vec3 worldScaleOffset = new Vec3(0.5f, 0.5f, 0.5f);
+            Matrix worldOffset = Matrix.TS(worldPositionOffset, worldScaleOffset);
+            
+            myModel.Draw(myPose.ToMatrix(myScale) * worldOffset, myColor);
         }
     }
 }

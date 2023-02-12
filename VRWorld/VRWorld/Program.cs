@@ -30,7 +30,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 0.1, \"y\": 0.1, \"z\": 0.1}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\nReal start with id 0:\ntext:";
+            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:remove or delete the blue cube\njson:{\"id\": 0, \"remove\": true}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
             Task<CompletionResult> generateTask = null;
@@ -90,7 +90,7 @@ namespace VRWorld
 
                 //Get the 200 last characters of aiText
                 int showLength = 1000;
-                string showText = aiText.Length > showLength ? "..." + aiText.Substring(aiText.Length - showLength - 3) : aiText;
+                string showText = aiText.Length > showLength ? "..." + aiText.Substring(aiText.Length - showLength) : aiText;
                 UI.Text(showText);
 
                 if (speechAIText == "") //no AI speech == can edit text
@@ -104,7 +104,7 @@ namespace VRWorld
                 }
 
                 UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
-                if (UI.Toggle("record mic", ref record))
+                if (UI.Toggle("Mic", ref record))
                 {
                     if (record)
                     {
@@ -115,11 +115,16 @@ namespace VRWorld
                         speechRecognizer.StopContinuousRecognitionAsync().Wait();
                     }
                 }
-                
                 UI.PopTint();
 
                 UI.SameLine();
-                if (UI.Button("Submit text"))
+                if (UI.Button("Clear"))
+                {
+                    textInput = "";
+                }
+                UI.SameLine();
+                UI.PushTint(new Color(0.5f, 0.5f, 1));
+                if (UI.Button("Submit"))
                 {
                     aiText += textInput + startSequence;
                     generateTask = GenerateAIResponce(api, aiText);
@@ -127,6 +132,7 @@ namespace VRWorld
                     textInput = ""; //Clear input
                     
                 }
+                UI.PopTint();
                 UI.WindowEnd();
 
                 if (generateTask != null && generateTask.IsCompleted)
