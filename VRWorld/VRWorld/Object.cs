@@ -50,6 +50,11 @@ namespace VRWorld
                 {
                     myModel = Model.FromMesh(Mesh.Sphere, Material.UI);
                 }
+                else if (str == "cylinder")
+                {
+                    Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
+                    myModel = Model.FromMesh(cylinder, Material.UI);
+                }
                 //continue with more meshes
                 else //default cube
                 {
