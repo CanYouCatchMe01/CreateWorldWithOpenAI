@@ -31,7 +31,7 @@ class Program
         }
     }
 
-    async static Task Main(string[] args)
+    static void Main(string[] args)
     {
         //Secrets which are not in the repo. Right click on C# project in Solution Explorer -> Manage User Secrets -> Add "SPEECH_KEY": your_key
         var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
@@ -44,8 +44,54 @@ class Program
         using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
         using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
-        Console.WriteLine("Speak into your microphone.");
-        var speechRecognitionResult = await speechRecognizer.RecognizeOnceAsync();
-        OutputSpeechRecognitionResult(speechRecognitionResult);
+        speechRecognizer.Recognizing += (s, e) =>
+        {
+            Console.WriteLine($"Recognizing: {e.Result.Text}");
+        };
+
+        speechRecognizer.Recognized += (s, e) =>
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech)
+            {
+                Console.WriteLine($"Recognized: {e.Result.Text}");
+            }
+            else if (e.Result.Reason == ResultReason.NoMatch)
+            {
+                Console.WriteLine("No speech could be recognized.");
+            }
+            else if (e.Result.Reason == ResultReason.Canceled)
+            {
+                var cancellation = CancellationDetails.FromResult(e.Result);
+                Console.WriteLine($"Canceled, Reason: {cancellation.Reason}");
+            }
+        };
+
+        speechRecognizer.Canceled += (s, e) =>
+        {
+            Console.WriteLine($"Canceled, Reason: {e.Reason}");
+        };
+
+        speechRecognizer.SessionStarted += (s, e) =>
+        {
+            Console.WriteLine("Session started event.");
+        };
+
+        speechRecognizer.SessionStopped += (s, e) =>
+        {
+            Console.WriteLine("Session stopped event.");
+            Console.WriteLine("\nStop recognition.");
+            speechRecognizer.StopContinuousRecognitionAsync().Wait();
+        };
+
+        Console.WriteLine("Start recognition.");
+        speechRecognizer.StartContinuousRecognitionAsync().Wait();
+        
+        Console.WriteLine("Press any key to stop1");
+        Console.ReadKey();
+        
+        speechRecognizer.StopContinuousRecognitionAsync().Wait();
+        Console.WriteLine("Press any key to stop2");
+        Console.ReadKey();
+
     }
 }
