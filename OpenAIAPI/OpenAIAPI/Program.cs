@@ -10,9 +10,8 @@ namespace Program
         static void Main(string[] args)
         {
             //Secrets which are not in the repo. Right click on C# project in Solution Explorer -> Manage User Secrets -> Add "OPENAI_API_KEY": your_key
-            var builder = new ConfigurationBuilder().AddUserSecrets<Program>();
-            var configurationRoot = builder.Build();
-            string openAiKey = configurationRoot.GetSection("OPENAI_API_KEY").Value;
+            var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
+            string openAiKey = config.GetSection("OPENAI_API_KEY").Value;
 
             var api = new OpenAI_API.OpenAIAPI(openAiKey); //loads the API key from the .openai file that is in the same directory as the .exe
 
