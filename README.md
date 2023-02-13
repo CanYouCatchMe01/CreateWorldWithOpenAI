@@ -61,7 +61,7 @@ static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anAp
     return result;
 }
 ```
-The responce you get from OpenAI is a `string` that gets convertet to a `JSON object`. Then I find which object the responce is for with the `"id"` key, and the correct object gets updated. 
+The responce you get from OpenAI is a `string` that gets converted to a `JSON object`.  I then read the JSON object values and updates the objects. 
 ```csharp
 public void UpdateFromJSON(JObject someData)
 {
@@ -94,14 +94,56 @@ public void UpdateFromJSON(JObject someData)
 ```
 
 ### 3. Convert speech to text
+To use Microsoft's speech service we first need to create a "Speech Service resource" and get the our key.
+![Microsoft Speech Service Key](img/MicrosoftSpeechServiceKey.PNG)
+We then create a `speechRecognizer` and add a lambda expression to the `Recognizing` event. This event is called every time the speech recognizer receives a result.
+```csharp
+var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
+speechConfig.SpeechRecognitionLanguage = "en-US";
 
-## Packeges that are used
+using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+speechRecognizer.Recognizing += (s, e) =>
+{
+    speechAIText = e.Result.Text;
+};
+```
+Start the speech recognizion by calling:
+```csharp
+speechRecognizer.StartContinuousRecognitionAsync().Wait();
+```
+And to end speech recognizion call:
+```csharp
+speechRecognizer.StopContinuousRecognitionAsync().Wait();
+```
+
+## Store out keys securely with "Visual Studio user secrets"
+Don't store your keys in the Git project and accidentally push them to Github! Visual Studio user secrets is a JSON file that gets stored in a different folder then the project on your local PC.
+Go to `Solution Explorer -> Manage User Secrets` and add your keys into the JSON file.
+```json
+{
+  "OPENAI_API_KEY": "xxxxxxxxxxxxxxxxxx",
+  "SPEECH_KEY": "xxxxxxxxxxxxxxxxx",
+  "SPEECH_REGION": "xxxxxxxxxxx"
+}
+```
+![VisualStudioManagerUserSecrets](img/VisualStudioManagerUserSecrets.PNG)
+We can then load in our keys by calling:
+```csharp
+var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
+string openAiKey = config.GetSection("OPENAI_API_KEY").Value;
+string speechKey = config.GetSection("SPEECH_KEY").Value;
+string speechRegion = config.GetSection("SPEECH_REGION").Value;
+```
+
+## Packages that are used
 - [StereoKit](https://github.com/StereoKit/StereoKit) which is an open source VR game engine
 - [OpenAI API C#/.NET](https://github.com/OkGoDoIt/OpenAI-API-dotnet) wrapper to make API calls to Open AI
 - [Microsoft Azure Speech to text](https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/) to make API calls to to convert speech to text
 - [Newtonsoft](https://www.newtonsoft.com/json) which is a JSON framework
 
-## NuGet Links
+## NuGet links
 - [StereoKit](https://www.nuget.org/packages/StereoKit)
 - [OpenAI C#/.Net](https://www.nuget.org/packages/OpenAI/)
 - [Microsoft Azure Speech to text](https://www.nuget.org/packages/Microsoft.CognitiveServices.Speech/)
