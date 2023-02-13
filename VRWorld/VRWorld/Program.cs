@@ -5,6 +5,9 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using OpenAI_API.Completions;
+using Microsoft.CognitiveServices.Speech;
+using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.Extensions.Configuration;
 
 namespace VRWorld
 {
@@ -21,13 +24,51 @@ namespace VRWorld
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
 
+            //Secrets which are not in the repo. Right click on C# project in Solution Explorer -> Manage User Secrets -> Add "OPENAI_API_KEY": your_key
+            var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
+            string openAiKey = config.GetSection("OPENAI_API_KEY").Value;
+
             //Open AI
-            var api = new OpenAI_API.OpenAIAPI(); //loads the API key from the .openai file that is in the same directory as the .exe
-            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 0.1, \"y\": 0.1, \"z\": 0.1}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\nReal start with id 0:\ntext:";
+            var api = new OpenAI_API.OpenAIAPI(openAiKey);
+            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:remove or delete the blue cube\njson:{\"id\": 0, \"remove\": true}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
-            string textInput = "";
             Task<CompletionResult> generateTask = null;
+
+            //Microphone and text
+            bool record = true;
+            string textInput = "";
+            string speechAIText = "";
+
+            //Azure speech to text AI
+            string speechKey = config.GetSection("SPEECH_KEY").Value;
+            string speechRegion = config.GetSection("SPEECH_REGION").Value;
+
+            var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
+            speechConfig.SpeechRecognitionLanguage = "en-US";
+
+            using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+            using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+            speechRecognizer.Recognizing += (s, e) =>
+            {
+                speechAIText = e.Result.Text;
+            };
+
+            speechRecognizer.Recognized += (s, e) =>
+            {
+                textInput += speechAIText;
+                speechAIText = "";
+            };
+
+            if (record)
+            {
+                speechRecognizer.StartContinuousRecognitionAsync().Wait();
+            }
+            else
+            {
+                speechRecognizer.StopContinuousRecognitionAsync().Wait();
+            }
 
             //GameObjects are stored in a list
             int myIdCounter = 0;
@@ -37,7 +78,8 @@ namespace VRWorld
             Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
             floorMaterial.Transparency = Transparency.Blend;
 
-            Pose windowPose = new Pose(0, 0, -0.5f, Quat.LookDir(0, 0, 1));
+            Pose windowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
+            Pose buttonPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
 
             // Core application loop
             while (SK.Step(() =>
@@ -45,10 +87,47 @@ namespace VRWorld
                 if (SK.System.displayType == Display.Opaque)
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
-                UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(20, 0) * U.cm);
-                UI.Text(aiText);
-                UI.Input("Input", ref textInput);
-                if (UI.Button("Submit text"))
+                UI.WindowBegin("Open AI chat", ref windowPose, new Vec2(30, 0) * U.cm);
+
+                //Get the 200 last characters of aiText
+                int showLength = 1000;
+                string showText = aiText.Length > showLength ? "..." + aiText.Substring(aiText.Length - showLength) : aiText;
+                UI.Text(showText);
+
+                if (speechAIText == "") //no AI speech == can edit text
+                {
+                    UI.Input("Input", ref textInput);
+                }
+                else //AI speech can not edit text
+                {
+                    string sum = textInput + speechAIText;
+                    UI.Input("Input", ref sum);
+                }
+                UI.WindowEnd();
+
+                UI.WindowBegin("Buttons", ref buttonPose, new Vec2(30, 0) * U.cm);
+                UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
+                if (UI.Toggle("Mic", ref record))
+                {
+                    if (record)
+                    {
+                        speechRecognizer.StartContinuousRecognitionAsync().Wait();
+                    }
+                    else
+                    {
+                        speechRecognizer.StopContinuousRecognitionAsync().Wait();
+                    }
+                }
+                UI.PopTint();
+
+                UI.SameLine();
+                if (UI.Button("Clear"))
+                {
+                    textInput = "";
+                }
+                UI.SameLine();
+                UI.PushTint(new Color(0.5f, 0.5f, 1));
+                if (UI.Button("Submit"))
                 {
                     aiText += textInput + startSequence;
                     generateTask = GenerateAIResponce(api, aiText);
@@ -56,6 +135,7 @@ namespace VRWorld
                     textInput = ""; //Clear input
                     
                 }
+                UI.PopTint();
                 UI.WindowEnd();
 
                 if (generateTask != null && generateTask.IsCompleted)
@@ -72,6 +152,7 @@ namespace VRWorld
                 }
             }));
             SK.Shutdown();
+            speechRecognizer.StopContinuousRecognitionAsync().Wait(); //Need to call, else slow shutdown
         }
 
         static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi, string aPrompt)
@@ -97,7 +178,10 @@ namespace VRWorld
 
             //Remove
             JResponce.TryGetValue("remove", out JToken JRemove);
-            if (JRemove != null && (bool)JRemove)
+            JResponce.TryGetValue("delete", out JToken JDelete);
+            bool remove = JRemove != null && (bool)JRemove;
+            bool delete = JDelete != null && (bool)JDelete;
+            if (remove || delete)
             {
                 for (int i = 0; i < someObjects.Count; i++)
                 {

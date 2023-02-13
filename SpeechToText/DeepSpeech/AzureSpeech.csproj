@@ -5,12 +5,12 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>974c3199-88e5-4cbc-b18b-e66191272ff8</UserSecretsId>
+    <UserSecretsId>88f9e4ae-1c30-4529-abf8-0fb3eab44bcb</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.25.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
-    <PackageReference Include="OpenAI" Version="1.4.0" />
   </ItemGroup>
 
 </Project>
