@@ -128,7 +128,9 @@ Go to `Solution Explorer -> Manage User Secrets` and add your keys into the JSON
   "SPEECH_REGION": "xxxxxxxxxxx"
 }
 ```
-![VisualStudioManagerUserSecrets](img/VisualStudioManagerUserSecrets.PNG)
+
+<img src="img/VisualStudioManagerUserSecrets.PNG" width="50%">
+
 We can then load in our keys by calling:
 ```csharp
 var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
