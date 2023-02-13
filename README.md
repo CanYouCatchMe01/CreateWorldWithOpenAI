@@ -13,15 +13,14 @@ using StereoKit;
 
 class Program
 {
-	static void Main(string[] args)
-	{
-		SK.Initialize(new SKSettings{ appName = "Project" });
-
-		SK.Run(() =>
-		{
-			Mesh.Cube.Draw(Material.Default, Matrix.S(0.1f));
-		});
-	}
+    static void Main(string[] args)
+    {
+        SK.Initialize(new SKSettings{ appName = "Project" });
+        SK.Run(() =>
+        {
+            Mesh.Cube.Draw(Material.Default, Matrix.S(0.1f));
+        });
+    }
 }
 ```
 ### 2. Use the OpenAI API
