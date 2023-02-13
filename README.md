@@ -1,4 +1,4 @@
-# Create world with voice commands
+# Create a world with voice commands
 My first OpenAI project. I can place objects in the world with my voice.
 I'm using "OpenAI Codex" to generate .json and to convert my voice to text I use "Microsoft Azure Speech-To-Text".
 
@@ -7,7 +7,7 @@ I'm using "OpenAI Codex" to generate .json and to convert my voice to text I use
 
 ## How it works
 ### 1. Create a world
-To display the VR world I use the open source VR game engine StereoKit. Its main programming language in C#. This is just a basic example of how to draw a cube.
+To display the VR world I use the open-source VR game engine StereoKit. Its main programming language is C#. This is just a basic example of how to draw a cube.
 ```csharp
 using StereoKit;
 
@@ -41,7 +41,7 @@ Using [OpenAI playground](https://platform.openai.com/playground) is a good plac
 #### API
 To use the OpenAI API you first need an API key which can be created under [Personal -> View API keys](https://platform.openai.com/account/api-keys)
 
-Create an `api` object and `async GenerateAIResponce` function which can be run on a different thread. It need to be run on a diffent thread so the program doesn't freeze, when waiting on an response.
+Create an `api` object and `async GenerateAIResponce` function which can be run on a different thread. It needs to be run on a different thread so the program doesn't freeze when waiting for a response.
 ```csharp
 var api = new OpenAI_API.OpenAIAPI(openAiKey);
 
@@ -61,7 +61,7 @@ static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anAp
     return result;
 }
 ```
-The responce you get from OpenAI is a `string` that gets converted to a `JSON object`.  I then read the JSON object values and updates the objects. 
+The response you get from OpenAI is a `string` that gets converted to a `JSON object`.  I then read the JSON object values and update the objects. 
 ```csharp
 public void UpdateFromJSON(JObject someData)
 {
@@ -94,7 +94,7 @@ public void UpdateFromJSON(JObject someData)
 ```
 
 ### 3. Convert speech to text
-To use Microsoft's speech service we first need to create a "Speech Service resource" and get the our key.
+To use Microsoft's speech service we first need to create a "Speech Service resource" and get our key.
 ![Microsoft Speech Service Key](img/MicrosoftSpeechServiceKey.PNG)
 We then create a `speechRecognizer` and add a lambda expression to the `Recognizing` event. This event is called every time the speech recognizer receives a result.
 ```csharp
@@ -109,18 +109,18 @@ speechRecognizer.Recognizing += (s, e) =>
     speechAIText = e.Result.Text;
 };
 ```
-Start the speech recognizion by calling:
+Start the speech recognition by calling:
 ```csharp
 speechRecognizer.StartContinuousRecognitionAsync().Wait();
 ```
-And to end speech recognizion call:
+And to end the speech recognition call:
 ```csharp
 speechRecognizer.StopContinuousRecognitionAsync().Wait();
 ```
 
 ## Store out keys securely with "Visual Studio user secrets"
-Don't store your keys in the Git project and accidentally push them to Github! Visual Studio user secrets is a JSON file that gets stored in a different folder then the project on your local PC.
-Go to `Solution Explorer -> Manage User Secrets` and add your keys into the JSON file.
+Don't store your keys in the Git project and accidentally push them to Github! Visual Studio user secrets is a JSON file stored in a different folder than the project on your local PC.
+Go to `Solution Explorer -> Manage User Secrets` and add your keys to the JSON file.
 ```json
 {
   "OPENAI_API_KEY": "xxxxxxxxxxxxxxxxxx",
@@ -140,7 +140,7 @@ string speechRegion = config.GetSection("SPEECH_REGION").Value;
 ```
 
 ## Packages that are used
-- [StereoKit](https://github.com/StereoKit/StereoKit) which is an open source VR game engine
+- [StereoKit](https://github.com/StereoKit/StereoKit) which is an open-source VR game engine
 - [OpenAI API C#/.NET](https://github.com/OkGoDoIt/OpenAI-API-dotnet) wrapper to make API calls to Open AI
 - [Microsoft Azure Speech to text](https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/) to make API calls to to convert speech to text
 - [Newtonsoft](https://www.newtonsoft.com/json) which is a JSON framework
