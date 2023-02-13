@@ -78,7 +78,8 @@ namespace VRWorld
             Material floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
             floorMaterial.Transparency = Transparency.Blend;
 
-            Pose windowPose = new Pose(0, 0, -0.5f, Quat.LookDir(0, 0, 1));
+            Pose windowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
+            Pose buttonPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
 
             // Core application loop
             while (SK.Step(() =>
@@ -102,7 +103,9 @@ namespace VRWorld
                     string sum = textInput + speechAIText;
                     UI.Input("Input", ref sum);
                 }
+                UI.WindowEnd();
 
+                UI.WindowBegin("Buttons", ref buttonPose, new Vec2(30, 0) * U.cm);
                 UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
                 if (UI.Toggle("Mic", ref record))
                 {
