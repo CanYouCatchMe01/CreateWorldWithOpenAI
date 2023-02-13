@@ -61,7 +61,37 @@ static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anAp
     return result;
 }
 ```
-The responce you get from OpenAI is a `string` that I convert to a `JSON object`
+The responce you get from OpenAI is a `string` that gets convertet to a `JSON object`. Then I find which object the responce is for with the `"id"` key, and the correct object gets updated. 
+```csharp
+public void UpdateFromJSON(JObject someData)
+{
+    someData.TryGetValue("position", out JToken JPos);
+    someData.TryGetValue("scale", out JToken JScale);
+    someData.TryGetValue("shape", out JToken JShape);
+    someData.TryGetValue("color", out JToken JColor);
+
+    //Position
+    if (JPos != null)
+    {
+        myPose.position = JSONConverter.FromJSONVec3((JObject)JPos);
+    }
+    //Scale
+    if (JScale != null)
+    {
+        myScale = JSONConverter.FromJSONVec3((JObject)JScale);
+    }
+    //Mesh
+    if (JShape != null)
+    {
+        string str = JShape.ToString();
+        myShape = str;
+
+        if (str == "cube")
+        {
+            myModel = Model.FromMesh(Mesh.Cube, Material.UI);
+        }
+...
+```
 
 ### 3. Convert speech to text
 
