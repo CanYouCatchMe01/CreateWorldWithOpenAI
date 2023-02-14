@@ -117,7 +117,7 @@ And to end the speech recognition call:
 speechRecognizer.StopContinuousRecognitionAsync().Wait();
 ```
 
-## Store out keys securely with "Visual Studio user secrets"
+## Store our keys securely with "Visual Studio user secrets"
 Don't store your keys in the Git project and accidentally push them to Github! Visual Studio user secrets is a JSON file stored in a different folder than the project on your local PC.
 Go to `Solution Explorer -> Manage User Secrets` and add your keys to the JSON file.
 ```json
