@@ -2,6 +2,8 @@
 My first OpenAI project. I can place objects in the world with my voice.
 I'm using "OpenAI Codex" to generate .json and to convert my voice to text I use "Microsoft Azure Speech-To-Text".
 
+**Note: To make the program run you need your own API keys. More info [here](##store-our-keys-securely-with-visual-studio-user-secrets)**
+
 [Youtube demo link](https://youtu.be/7q-3J6OqiMY)
 [![Youtube link to demo](img/YoutubeVideoThumbnail.PNG)](https://youtu.be/7q-3J6OqiMY "Youtube link to demo")
 
