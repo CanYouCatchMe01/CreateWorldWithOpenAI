@@ -30,7 +30,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position one one one\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": -1}, \"scale\": {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:remove or delete the blue cube\njson:{\"id\": 0, \"remove\": true}\nReal start with id 0:\ntext:";
+            string aiText = "Create a json block from prompt.\nExample:\ntext:Create a blue cube at position zero zero zero\njson:{\"id\": 0, \"position\": {\"x\": 0, \"y\": 0, \"z\": 0}, \"scale\": {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}, \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:remove or delete the blue cube\njson:{\"id\": 0, \"remove\": true}\nReal start with id 0:\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
             Task<CompletionResult> generateTask = null;
@@ -61,14 +61,18 @@ namespace VRWorld
                 speechAIText = "";
             };
 
-            if (record)
+            Action checkRecordMic = () =>
             {
-                speechRecognizer.StartContinuousRecognitionAsync().Wait();
-            }
-            else
-            {
-                speechRecognizer.StopContinuousRecognitionAsync().Wait();
-            }
+                if (record)
+                {
+                    speechRecognizer.StartContinuousRecognitionAsync().Wait();
+                }
+                else
+                {
+                    speechRecognizer.StopContinuousRecognitionAsync().Wait();
+                }
+            };
+            checkRecordMic();
 
             //GameObjects are stored in a list
             int myIdCounter = 0;
@@ -109,25 +113,25 @@ namespace VRWorld
                 UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
                 if (UI.Toggle("Mic", ref record))
                 {
-                    if (record)
-                    {
-                        speechRecognizer.StartContinuousRecognitionAsync().Wait();
-                    }
-                    else
-                    {
-                        speechRecognizer.StopContinuousRecognitionAsync().Wait();
-                    }
+                    checkRecordMic();
                 }
+                if((Input.Key(Key.M) & BtnState.JustActive) > 0) //keyboard 'M'
+                {
+                    record = !record; //switch value
+                    checkRecordMic();
+                }
+                
                 UI.PopTint();
 
                 UI.SameLine();
-                if (UI.Button("Clear"))
+                if (UI.Button("Clear") || (Input.Key(Key.C) & BtnState.JustActive) > 0)
                 {
                     textInput = "";
                 }
                 UI.SameLine();
                 UI.PushTint(new Color(0.5f, 0.5f, 1));
-                if (UI.Button("Submit"))
+                bool submit = UI.Button("Submit") || (Input.Key(Key.Return) & BtnState.JustActive) > 0;
+                if (textInput != "" && submit)
                 {
                     aiText += textInput + startSequence;
                     generateTask = GenerateAIResponce(api, aiText);
