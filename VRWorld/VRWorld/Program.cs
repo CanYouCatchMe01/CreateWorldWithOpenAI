@@ -111,11 +111,11 @@ namespace VRWorld
 
                 UI.WindowBegin("Buttons", ref buttonPose, new Vec2(30, 0) * U.cm);
                 UI.PushTint(record ? new Color(1, 0.1f, 0.1f) : Color.White); //red when recording
-                if (UI.Toggle("Mic", ref record))
+                if (UI.Toggle("Mic(F1)", ref record))
                 {
                     checkRecordMic();
                 }
-                if((Input.Key(Key.M) & BtnState.JustActive) > 0) //keyboard 'M'
+                if((Input.Key(Key.F1) & BtnState.JustActive) > 0) //keyboard 'M'
                 {
                     record = !record; //switch value
                     checkRecordMic();
@@ -124,7 +124,7 @@ namespace VRWorld
                 UI.PopTint();
 
                 UI.SameLine();
-                if (UI.Button("Clear") || (Input.Key(Key.C) & BtnState.JustActive) > 0)
+                if (UI.Button("Clear(F2)") || (Input.Key(Key.F2) & BtnState.JustActive) > 0)
                 {
                     textInput = "";
                 }
