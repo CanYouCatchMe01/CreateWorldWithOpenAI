@@ -81,17 +81,17 @@ namespace VRWorld
 
                         Hand hand = Input.Hand((Handed)h);
 
+                        Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
+
                         //Start grabing
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
                             grabedOffsets[(int)h] = handMatrix.Inverse * o.myPose.ToMatrix();
                             grabedIds[(int)h] = o.myId;
                         }
                         //Move the grabed object
                         if (hand.IsPinched && grabedIds[h] != -1)
                         {
-                            Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
                             Matrix newMatrix = handMatrix * grabedOffsets[(int)h];
                             o.myPose = newMatrix.Pose;
 
