@@ -61,6 +61,9 @@ namespace VRWorld
             Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             string debugText = "";
 
+            Vec3[] grabedOffsets = new Vec3[(int)Handed.Max] {Vec3.Zero, Vec3.Zero };
+            int[] grabedIds = new int[(int)Handed.Max] { -1, -1 };
+
             // Core application loop
             while (SK.Step(() =>
             {
@@ -73,21 +76,29 @@ namespace VRWorld
                     for (int h = 0; h < (int)Handed.Max; h++)
                     {
                         Bounds bounds = o.myModel.Bounds;
-                        bounds.dimensions *= o.myScale;
+                        bounds.dimensions *= o.myScale * 1.5f;
                         bounds.center += o.myPose.position;
 
                         Hand hand = Input.Hand((Handed)h);
                         debugText += "Fingertip: " + hand.pinchPt.ToString() + "\n";
                         debugText += "Bounds: " + bounds.ToString() + "\n";
-                        if (hand.IsPinched && bounds.Contains(hand.pinchPt))
+
+                        if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            o.myPose.position = hand.pinchPt;
-                            o.myColor = new Color(1, 1, 1, 1);
+                            grabedOffsets[(int)h] = hand.pinchPt - o.myPose.position;
+                            grabedIds[(int)h] = o.myId;
                         }
-                        else
+
+                        if (hand.IsPinched && grabedIds[h] != -1)
                         {
-                            o.myColor = new Color(1, 1, 0, 1);
+                            o.myPose.position = hand.pinchPt - grabedOffsets[(int)h];
                         }
+                        else if (hand.IsJustUnpinched)
+                        {
+                            grabedIds[(int)h] = -1;
+                        }
+
+
                     }
 
                     o.Draw();
