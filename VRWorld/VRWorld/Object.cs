@@ -6,10 +6,10 @@ namespace VRWorld
     internal class Object
     {
         public int myId { get; }
-        Model myModel;
-        Color myColor;
-        Pose myPose = Pose.Identity;
-        Vec3 myScale = Vec3.One;
+        public Model myModel;
+        public Color myColor;
+        public Pose myPose = Pose.Identity;
+        public Vec3 myScale = Vec3.One;
         string myShape; //Can be "cube", "cylinder", "plane", "rounded cube". See generate funcitons at https://stereokit.net/Pages/StereoKit/Mesh.html
 
         public Object(int anId, JObject someData) //JObject is a JSON object
@@ -83,12 +83,8 @@ namespace VRWorld
         }
 
         public void Draw()
-        {
-            Vec3 worldPositionOffset = new Vec3(0, -0.5f, -1);
-            Vec3 worldScaleOffset = new Vec3(0.5f, 0.5f, 0.5f);
-            Matrix worldOffset = Matrix.TS(worldPositionOffset, worldScaleOffset);
-            
-            myModel.Draw(myPose.ToMatrix(myScale) * worldOffset, myColor);
+        {   
+            myModel.Draw(myPose.ToMatrix(myScale), myColor);
         }
     }
 }
