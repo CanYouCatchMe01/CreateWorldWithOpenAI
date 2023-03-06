@@ -58,22 +58,45 @@ namespace VRWorld
             //Create a cube
             objects.Add(new VRWorld.Object(myIdCounter++, someData));
 
+            Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
+            string debugText = "";
+
             // Core application loop
             while (SK.Step(() =>
             {
+                debugText = ""; //clear
                 if (SK.System.displayType == Display.Opaque)
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
                 foreach(VRWorld.Object o in objects)
                 {
-                    string uiId = "object " + o.myId.ToString();
+                    for (int h = 0; h < (int)Handed.Max; h++)
+                    {
+                        Bounds bounds = o.myModel.Bounds;
+                        bounds.dimensions *= o.myScale;
+                        bounds.center += o.myPose.position;
 
-                    Bounds bounds = o.myModel.Bounds;
-                    bounds.dimensions *= o.myScale;
-                    
-                    UI.Handle(uiId, ref o.myPose, bounds, true);
+                        Hand hand = Input.Hand((Handed)h);
+                        debugText += "Fingertip: " + hand.pinchPt.ToString() + "\n";
+                        debugText += "Bounds: " + bounds.ToString() + "\n";
+                        if (hand.IsPinched && bounds.Contains(hand.pinchPt))
+                        {
+                            o.myPose.position = hand.pinchPt;
+                            o.myColor = new Color(1, 1, 1, 1);
+                        }
+                        else
+                        {
+                            o.myColor = new Color(1, 1, 0, 1);
+                        }
+                    }
+
                     o.Draw();
                 }
+
+                UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm);
+                
+                UI.Text(debugText);
+                UI.WindowEnd();
             }));
             SK.Shutdown();
         }
