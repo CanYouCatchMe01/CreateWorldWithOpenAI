@@ -57,6 +57,7 @@ namespace VRWorld
 
             //Create a cube
             objects.Add(new VRWorld.Object(myIdCounter++, someData));
+            objects.Add(new VRWorld.Object(myIdCounter++, someData));
 
             // Core application loop
             while (SK.Step(() =>
