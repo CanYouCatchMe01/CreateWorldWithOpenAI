@@ -86,18 +86,20 @@ namespace VRWorld
                         //Start grabing
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            grabedOffsets[(int)h] = handMatrix.Inverse * o.myPose.ToMatrix();
+                            grabedOffsets[(int)h] = o.myPose.ToMatrix() * handMatrix.Inverse;
                             grabedIds[(int)h] = o.myId;
                         }
                         //Move the grabed object
                         if (hand.IsPinched && grabedIds[h] != -1)
                         {
-                            Matrix newMatrix = handMatrix * grabedOffsets[(int)h];
+                            Matrix newMatrix = grabedOffsets[(int)h] * handMatrix;
                             o.myPose = newMatrix.Pose;
 
-                            debugText += "pose: " + o.myPose + "\n";
-                            debugText += "pos: " + o.myPose.position + "\n";
-                            debugText += "rot: " + o.myPose.orientation + "\n";
+                            //debugText += "pose: " + o.myPose + "\n";
+                            //debugText += "pos: " + o.myPose.position + "\n";
+                            //debugText += "rot: " + o.myPose.orientation + "\n";
+                            debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
+                            debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
                         }
                         //Ungrab the object
                         else if (hand.IsJustUnpinched)
