@@ -61,8 +61,7 @@ namespace VRWorld
             Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             string debugText = "";
 
-            Vec3[] grabedPositionOffsets = new Vec3[(int)Handed.Max] {Vec3.Zero, Vec3.Zero };
-            Quat[] grabedRotationOffsets = new Quat[(int)Handed.Max] { Quat.Identity, Quat.Identity };
+            Matrix[] grabedOffsets = new Matrix[(int)Handed.Max] { Matrix.Identity, Matrix.Identity };
             int[] grabedIds = new int[(int)Handed.Max] { -1, -1 };
 
             // Core application loop
@@ -81,21 +80,26 @@ namespace VRWorld
                         bounds.center += o.myPose.position;
 
                         Hand hand = Input.Hand((Handed)h);
-                        debugText += "Fingertip: " + hand.pinchPt.ToString() + "\n";
-                        debugText += "Bounds: " + bounds.ToString() + "\n";
 
                         //Start grabing
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            grabedPositionOffsets[(int)h] = hand.pinchPt - o.myPose.position;
-                            grabedRotationOffsets[(int)h] = Quat.Difference(hand.palm.orientation, o.myPose.orientation);
+                            Vec3 posOffset = o.myPose.position - hand.pinchPt;
+                            Quat rotOffset = hand.palm.orientation.Inverse * o.myPose.orientation;
+                            
+                            grabedOffsets[(int)h] = Matrix.TR(posOffset, rotOffset);
                             grabedIds[(int)h] = o.myId;
                         }
                         //Move the grabed object
                         if (hand.IsPinched && grabedIds[h] != -1)
                         {
-                            o.myPose.position = hand.pinchPt - grabedPositionOffsets[(int)h];
-                            o.myPose.orientation = hand.palm.orientation * grabedRotationOffsets[(int)h];
+                            Matrix current = Matrix.TR(hand.pinchPt, hand.palm.orientation);
+                            Matrix newMatrix = current * grabedOffsets[(int)h];
+                            o.myPose = newMatrix.Pose;
+
+                            debugText += "pose: " + o.myPose + "\n";
+                            debugText += "pos: " + o.myPose.position + "\n";
+                            debugText += "rot: " + o.myPose.orientation + "\n";
                         }
                         //Ungrab the object
                         else if (hand.IsJustUnpinched)
