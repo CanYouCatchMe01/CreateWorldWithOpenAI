@@ -61,7 +61,8 @@ namespace VRWorld
             Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             string debugText = "";
 
-            Vec3[] grabedOffsets = new Vec3[(int)Handed.Max] {Vec3.Zero, Vec3.Zero };
+            Vec3[] grabedPositionOffsets = new Vec3[(int)Handed.Max] {Vec3.Zero, Vec3.Zero };
+            Quat[] grabedRotationOffsets = new Quat[(int)Handed.Max] { Quat.Identity, Quat.Identity };
             int[] grabedIds = new int[(int)Handed.Max] { -1, -1 };
 
             // Core application loop
@@ -83,22 +84,24 @@ namespace VRWorld
                         debugText += "Fingertip: " + hand.pinchPt.ToString() + "\n";
                         debugText += "Bounds: " + bounds.ToString() + "\n";
 
+                        //Start grabing
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            grabedOffsets[(int)h] = hand.pinchPt - o.myPose.position;
+                            grabedPositionOffsets[(int)h] = hand.pinchPt - o.myPose.position;
+                            grabedRotationOffsets[(int)h] = Quat.Difference(hand.palm.orientation, o.myPose.orientation);
                             grabedIds[(int)h] = o.myId;
                         }
-
+                        //Move the grabed object
                         if (hand.IsPinched && grabedIds[h] != -1)
                         {
-                            o.myPose.position = hand.pinchPt - grabedOffsets[(int)h];
+                            o.myPose.position = hand.pinchPt - grabedPositionOffsets[(int)h];
+                            o.myPose.orientation = hand.palm.orientation * grabedRotationOffsets[(int)h];
                         }
+                        //Ungrab the object
                         else if (hand.IsJustUnpinched)
                         {
                             grabedIds[(int)h] = -1;
                         }
-
-
                     }
 
                     o.Draw();
