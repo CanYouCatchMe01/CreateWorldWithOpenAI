@@ -57,12 +57,14 @@ namespace VRWorld
 
             //Create a cube
             objects.Add(new VRWorld.Object(myIdCounter++, someData));
+            objects.Add(new VRWorld.Object(myIdCounter++, someData));
 
             Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             string debugText = "";
 
             Matrix[] grabedOffsets = new Matrix[(int)Handed.Max] { Matrix.Identity, Matrix.Identity };
-            int[] grabedIds = new int[(int)Handed.Max] { -1, -1 };
+            int[] grabedIndexs = new int[(int)Handed.Max] { -1, -1 };
+            Handed scalingHand = Handed.Max; //Max is like invalid
 
             // Core application loop
             while (SK.Step(() =>
@@ -71,48 +73,50 @@ namespace VRWorld
                 if (SK.System.displayType == Display.Opaque)
                     Default.MeshCube.Draw(floorMaterial, floorTransform);
 
-                foreach(VRWorld.Object o in objects)
+                //Seeing which object that is grabed
+                for (Handed h = 0; h < Handed.Max; h++)
                 {
-                    for (int h = 0; h < (int)Handed.Max; h++)
+                    Hand hand = Input.Hand(h);
+                    Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
+
+                    for (int i = 0; i < objects.Count; i++)
                     {
-                        Bounds bounds = o.myModel.Bounds;
-                        bounds.dimensions *= o.myScale * 1.5f;
-                        bounds.center += o.myPose.position;
+                        Bounds bounds = objects[i].myModel.Bounds;
+                        bounds.dimensions *= objects[i].myScale * 1.5f;
+                        bounds.center += objects[i].myPose.position;
 
-                        Hand hand = Input.Hand((Handed)h);
-
-                        Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
-
-                        //Start grabing
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            grabedOffsets[(int)h] = o.myPose.ToMatrix() * handMatrix.Inverse;
-                            grabedIds[(int)h] = o.myId;
-                        }
-                        //Move the grabed object
-                        if (hand.IsPinched && grabedIds[h] != -1)
-                        {
-                            Matrix newMatrix = grabedOffsets[(int)h] * handMatrix;
-                            o.myPose = newMatrix.Pose;
-
-                            //debugText += "pose: " + o.myPose + "\n";
-                            //debugText += "pos: " + o.myPose.position + "\n";
-                            //debugText += "rot: " + o.myPose.orientation + "\n";
-                            debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
-                            debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
-                        }
-                        //Ungrab the object
-                        else if (hand.IsJustUnpinched)
-                        {
-                            grabedIds[(int)h] = -1;
+                            grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
+                            grabedIndexs[(int)h] = objects[i].myId;
+                            break;
                         }
                     }
 
-                    o.Draw();
+                    //Move the grabed object
+                    if (hand.IsPinched && grabedIndexs[(int)h] != -1)
+                    {
+                        Matrix newMatrix = grabedOffsets[(int)h] * handMatrix;
+                        objects[grabedIndexs[(int)h]].myPose = newMatrix.Pose;
+
+                        debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
+                        debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
+                    }
+                    //Ungrab the object
+                    else if (hand.IsJustUnpinched)
+                    {
+                        grabedIndexs[(int)h] = -1;
+                    }    
                 }
 
+                //Draw the object
+                for (int i = 0; i < objects.Count; i++)
+                {
+                    objects[i].Draw();
+                }
+
+                //Debug window
                 UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm);
-                
                 UI.Text(debugText);
                 UI.WindowEnd();
             }));
