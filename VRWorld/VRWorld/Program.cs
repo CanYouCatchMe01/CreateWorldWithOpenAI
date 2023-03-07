@@ -94,7 +94,7 @@ namespace VRWorld
                             if (otherGrabedIndex == i) //the other grabed object is this object
                             {
                                 scalingHand = h;
-                                startScale = objects[otherGrabedIndex].myScale;
+                                startScale = objects[i].myScale;
                             }
                             else
                             {
@@ -121,7 +121,7 @@ namespace VRWorld
                         scalingHand = Handed.Max;
                     }
 
-                    debugText += "scaling hand" + scalingHand + "\n";
+                    //debugText += "scaling hand" + scalingHand + "\n";
                 }
 
                 if (scalingHand != Handed.Max)
@@ -131,10 +131,21 @@ namespace VRWorld
 
                     Hand hand = Input.Hand(scalingHand);
                     Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
-                    Matrix currentOffset = objects[grabingIndex].myPose.ToMatrix() * handMatrix.Inverse;
 
-                    float distance = (currentOffset.Pose.position - grabedOffsets[(int)scalingHand].Pose.position).Length;
-                    objects[grabingIndex].myScale = startScale + startScale * distance;
+                    Matrix currentOffset = objects[grabingIndex].myPose.ToMatrix() * handMatrix.Inverse;
+                    Matrix startGrabOffset = grabedOffsets[(int)scalingHand];
+
+                    float currentDistance = (currentOffset.Pose.position - grabedOffsets[(int)grabingHand].Pose.position).Length;
+                    float startDistance = (startGrabOffset.Pose.position - grabedOffsets[(int)grabingHand].Pose.position).Length;
+                    float scaleFactor = currentDistance / startDistance;
+
+                    //Getting how much the user has scaled
+                    //Vec3 scaledVector = currentOffset.Pose.position / startGrabOffset.Pose.position;
+                    //debugText += "scaledVector" + scaledVector + "\n";
+                    //debugText += "currentOffset pos" + currentOffset.Pose.position + "\n";
+                    //debugText += "startGrabOffset pos" + currentOffset.Pose.position + "\n";
+
+                    objects[grabingIndex].myScale = startScale * scaleFactor;
                 }
 
                 //Draw the object
