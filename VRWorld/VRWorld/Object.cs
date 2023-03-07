@@ -5,7 +5,7 @@ namespace VRWorld
 {
     internal class Object
     {
-        public int myId { get; }
+        int myId { get; }
         public Model myModel;
         public Color myColor;
         public Pose myPose = Pose.Identity;

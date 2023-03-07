@@ -77,7 +77,10 @@ namespace VRWorld
                 for (Handed h = 0; h < Handed.Max; h++)
                 {
                     Hand hand = Input.Hand(h);
+                    Handed otherHand = scalingHand == Handed.Right ? Handed.Left : Handed.Right;
                     Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
+
+                    int otherGrabedIndex = grabedIndexs[(int)otherHand];
 
                     for (int i = 0; i < objects.Count; i++)
                     {
@@ -87,8 +90,15 @@ namespace VRWorld
 
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
-                            grabedIndexs[(int)h] = objects[i].myId;
+                            if (otherGrabedIndex == i) //the other grabed object is this object
+                            {
+                                scalingHand = h;
+                            }
+                            else
+                            {
+                                grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
+                                grabedIndexs[(int)h] = i;
+                            }
                             break;
                         }
                     }
