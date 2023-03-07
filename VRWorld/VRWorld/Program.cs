@@ -118,14 +118,23 @@ namespace VRWorld
                     else if (hand.IsJustUnpinched)
                     {
                         grabedIndexs[(int)h] = -1;
-
-                        if (scalingHand == h)
-                        {
-                            scalingHand = Handed.Max;
-                        }
+                        scalingHand = Handed.Max;
                     }
 
                     debugText += "scaling hand" + scalingHand + "\n";
+                }
+
+                if (scalingHand != Handed.Max)
+                {
+                    Handed grabingHand = scalingHand == Handed.Right ? Handed.Left : Handed.Right;
+                    int grabingIndex = grabedIndexs[(int)grabingHand];
+
+                    Hand hand = Input.Hand(scalingHand);
+                    Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
+                    Matrix currentOffset = objects[grabingIndex].myPose.ToMatrix() * handMatrix.Inverse;
+
+                    float distance = (currentOffset.Pose.position - grabedOffsets[(int)scalingHand].Pose.position).Length;
+                    objects[grabingIndex].myScale = startScale + startScale * distance;
                 }
 
                 //Draw the object
