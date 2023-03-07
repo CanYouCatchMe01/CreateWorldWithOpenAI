@@ -65,6 +65,7 @@ namespace VRWorld
             Matrix[] grabedOffsets = new Matrix[(int)Handed.Max] { Matrix.Identity, Matrix.Identity };
             int[] grabedIndexs = new int[(int)Handed.Max] { -1, -1 };
             Handed scalingHand = Handed.Max; //Max is like invalid
+            Vec3 startScale = Vec3.Zero;
 
             // Core application loop
             while (SK.Step(() =>
@@ -77,7 +78,7 @@ namespace VRWorld
                 for (Handed h = 0; h < Handed.Max; h++)
                 {
                     Hand hand = Input.Hand(h);
-                    Handed otherHand = scalingHand == Handed.Right ? Handed.Left : Handed.Right;
+                    Handed otherHand = h == Handed.Right ? Handed.Left : Handed.Right;
                     Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
 
                     int otherGrabedIndex = grabedIndexs[(int)otherHand];
@@ -93,12 +94,13 @@ namespace VRWorld
                             if (otherGrabedIndex == i) //the other grabed object is this object
                             {
                                 scalingHand = h;
+                                startScale = objects[otherGrabedIndex].myScale;
                             }
                             else
                             {
-                                grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
                                 grabedIndexs[(int)h] = i;
                             }
+                            grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
                             break;
                         }
                     }
@@ -109,14 +111,21 @@ namespace VRWorld
                         Matrix newMatrix = grabedOffsets[(int)h] * handMatrix;
                         objects[grabedIndexs[(int)h]].myPose = newMatrix.Pose;
 
-                        debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
-                        debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
+                        //debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
+                        //debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
                     }
                     //Ungrab the object
                     else if (hand.IsJustUnpinched)
                     {
                         grabedIndexs[(int)h] = -1;
-                    }    
+
+                        if (scalingHand == h)
+                        {
+                            scalingHand = Handed.Max;
+                        }
+                    }
+
+                    debugText += "scaling hand" + scalingHand + "\n";
                 }
 
                 //Draw the object
