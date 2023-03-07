@@ -66,6 +66,7 @@ namespace VRWorld
             int[] grabedIndexs = new int[(int)Handed.Max] { -1, -1 };
             Handed scalingHand = Handed.Max; //Max is like invalid
             Vec3 startScale = Vec3.Zero;
+            float startScalingDistance = 0.0f;
 
             // Core application loop
             while (SK.Step(() =>
@@ -95,12 +96,13 @@ namespace VRWorld
                             {
                                 scalingHand = h;
                                 startScale = objects[i].myScale;
+                                startScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
                             }
                             else
                             {
                                 grabedIndexs[(int)h] = i;
+                                grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
                             }
-                            grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
                             break;
                         }
                     }
@@ -126,24 +128,16 @@ namespace VRWorld
 
                 if (scalingHand != Handed.Max)
                 {
+                    float currentScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+
+                    float scaleFactor = currentScalingDistance / startScalingDistance;
+
+                    debugText += "currentDistance" + startScalingDistance + "\n";
+                    debugText += "startDistance" + currentScalingDistance + "\n";
+                    debugText += "scaleFactor" + scaleFactor + "\n";
+
                     Handed grabingHand = scalingHand == Handed.Right ? Handed.Left : Handed.Right;
                     int grabingIndex = grabedIndexs[(int)grabingHand];
-
-                    Hand hand = Input.Hand(scalingHand);
-                    Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
-
-                    Matrix currentOffset = objects[grabingIndex].myPose.ToMatrix() * handMatrix.Inverse;
-                    Matrix startGrabOffset = grabedOffsets[(int)scalingHand];
-
-                    float currentDistance = (currentOffset.Pose.position - grabedOffsets[(int)grabingHand].Pose.position).Length;
-                    float startDistance = (startGrabOffset.Pose.position - grabedOffsets[(int)grabingHand].Pose.position).Length;
-                    float scaleFactor = currentDistance / startDistance;
-
-                    //Getting how much the user has scaled
-                    //Vec3 scaledVector = currentOffset.Pose.position / startGrabOffset.Pose.position;
-                    //debugText += "scaledVector" + scaledVector + "\n";
-                    //debugText += "currentOffset pos" + currentOffset.Pose.position + "\n";
-                    //debugText += "startGrabOffset pos" + currentOffset.Pose.position + "\n";
 
                     objects[grabingIndex].myScale = startScale * scaleFactor;
                 }
