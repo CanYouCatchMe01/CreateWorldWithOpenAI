@@ -9,29 +9,48 @@ namespace VRWorld
 {
     internal class ScalingCoordinateSystem
     {
-        Vec3 myCenterScale = Vec3.One * 10.0f * U.cm; //should be 3 cm
+        Vec3 myCenterScale = Vec3.One * 3.0f * U.cm; //should be 3 cm
         Vec3 myPinArmScale = new Vec3(10, 1, 1) * U.cm;
         Vec3 myPinHeadScale = Vec3.One * 4.0f * U.cm;
-        Model myModel;
+        Model myAlwaysModel;
+        Model myLessModel;
 
         //Create constuctior
         public ScalingCoordinateSystem()
         {
-            //Create a model
-            myModel = Model.FromMesh(Mesh.Cube, Material.UI);
+            Shader shader = Shader.UI;
+            {
+                Material mat = new Material(shader);
+                mat.DepthTest = DepthTest.Always;
+                mat.QueueOffset = 1;
+                myAlwaysModel = Model.FromMesh(Mesh.Cube, mat);
+            }
+            {
+                Material mat = new Material(shader);
+                mat.DepthTest = DepthTest.Less;
+                mat.QueueOffset = 2;
+                myLessModel = Model.FromMesh(Mesh.Cube, mat);
+            }
+
         }
 
-        private void DrawPin(Pose anObjectPose, Vec3 aRotation, Color color)
+        private void DrawPin(Model aModel, Pose anObjectPose, Vec3 aRotation, Color color)
         {
             Quat quatRotation = Quat.FromAngles(aRotation);
-            Matrix matrix = anObjectPose.ToMatrix() * Matrix.R(quatRotation) * Matrix.T(Vec3.Right * myPinArmScale.x) *  Matrix.S(myPinArmScale);
+            //Matrix matrix = anObjectPose.ToMatrix() * Matrix.R(quatRotation) * Matrix.T(Vec3.Right * myPinArmScale.x) *  Matrix.S(myPinArmScale);
+            Matrix matrix = Matrix.S(myPinArmScale) * Matrix.R(quatRotation) * Matrix.T(Vec3.Forward * myPinArmScale.x / 2.0f) * anObjectPose.ToMatrix(); //* Matrix.S(myPinArmScale);
 
-            myModel.Draw(matrix, color, RenderLayer.Layer1);
+            aModel.Draw(matrix, color);
+        }
+        private void Draw(Model aModel, Pose anObjectPose)
+        {
+            //aModel.Draw(anObjectPose.ToMatrix(myCenterScale), new Color(0.5f, 0.5f, 0.5f));
+            DrawPin(aModel, anObjectPose, new Vec3(0, 90, 0), new Color(0.0f, 0.0f, 1.0f));
         }
         public void Draw(Pose anObjectPose)
         {
-            myModel.Draw(anObjectPose.ToMatrix(myCenterScale), new Color(0.5f, 0.5f, 0.5f), RenderLayer.Layer1);
-            DrawPin(anObjectPose, new Vec3(0, 0, 0), new Color(0.0f, 0.0f, 1.0f));
+            Draw(myAlwaysModel, anObjectPose);
+            Draw(myLessModel, anObjectPose);
         }
     }
 }
