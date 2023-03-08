@@ -9,7 +9,7 @@ namespace VRWorld
 {
     internal class ScalingCoordinateSystem
     {
-        Vec3 myCenterScale = Vec3.One * 1.3f * U.cm; //should be 3 cm
+        Vec3 myCenterScale = Vec3.One * 1.3f * U.cm;
         Vec3 myPinArmScale = new Vec3(7.0f, 0.5f, 0.5f) * U.cm;
         Vec3 myPinHeadScale = Vec3.One * 1.0f * U.cm;
         Model myAlwaysModel;
