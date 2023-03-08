@@ -9,9 +9,9 @@ namespace VRWorld
 {
     internal class ScalingCoordinateSystem
     {
-        Vec3 myCenterScale = Vec3.One * 3.0f * U.cm; //should be 3 cm
-        Vec3 myPinArmScale = new Vec3(10.0f, 0.5f, 0.5f) * U.cm;
-        Vec3 myPinHeadScale = Vec3.One * 4.0f * U.cm;
+        Vec3 myCenterScale = Vec3.One * 1.3f * U.cm; //should be 3 cm
+        Vec3 myPinArmScale = new Vec3(7.0f, 0.5f, 0.5f) * U.cm;
+        Vec3 myPinHeadScale = Vec3.One * 1.0f * U.cm;
         Model myAlwaysModel;
         Model myLessModel;
 
@@ -37,19 +37,18 @@ namespace VRWorld
         private void DrawPin(Model aModel, Pose anObjectPose, Vec3 aRotation, Color color)
         {
             Quat quatRotation = Quat.FromAngles(aRotation);
-            //Matrix matrix = anObjectPose.ToMatrix() * Matrix.R(quatRotation) * Matrix.T(Vec3.Right * myPinArmScale.x) *  Matrix.S(myPinArmScale);
-            Matrix matrix = Matrix.S(myPinArmScale) * Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
-            //Matrix matrix = Matrix.R(quatRotation) * Matrix.S(myPinArmScale) ** anObjectPose.ToMatrix();
-            //Matrix matrix = Matrix.R(quatRotation) * Matrix.T(Vec3.Forward * myPinArmScale.x / 2.0f) * Matrix.S(myPinArmScale) * anObjectPose.ToMatrix(); //* Matrix.S(myPinArmScale);
+            Matrix pinArmMatrix = Matrix.S(myPinArmScale) * Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
+            Matrix pinHeadMatrix = Matrix.S(myPinHeadScale) * Matrix.T(Vec3.Right * myPinArmScale.x) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
 
-            aModel.Draw(matrix, color);
+            aModel.Draw(pinArmMatrix, color);
+            aModel.Draw(pinHeadMatrix, color);
         }
         private void Draw(Model aModel, Pose anObjectPose)
         {
-            //aModel.Draw(anObjectPose.ToMatrix(myCenterScale), new Color(0.5f, 0.5f, 0.5f));
-            DrawPin(aModel, anObjectPose, new Vec3(0, 0, 90), new Color(1.0f, 0.0f, 0.0f));
-            DrawPin(aModel, anObjectPose, new Vec3(0, 0, 0), new Color(0.0f, 1.0f, 0.0f));
-            DrawPin(aModel, anObjectPose, new Vec3(0, 90, 0), new Color(0.0f, 0.0f, 1.0f));
+            aModel.Draw(anObjectPose.ToMatrix(myCenterScale), new Color(0.5f, 0.5f, 0.5f)); //gray middle
+            DrawPin(aModel, anObjectPose, new Vec3(0, 0, 0), new Color(1.0f, 0.0f, 0.0f)); //red x
+            DrawPin(aModel, anObjectPose, new Vec3(0, 0, 90), new Color(0.0f, 1.0f, 0.0f)); //green y
+            DrawPin(aModel, anObjectPose, new Vec3(0, 90, 0), new Color(0.0f, 0.0f, 1.0f)); //blue z
         }
         public void Draw(Pose anObjectPose)
         {
