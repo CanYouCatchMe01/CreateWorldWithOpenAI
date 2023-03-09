@@ -48,7 +48,7 @@ namespace VRWorld
             using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
             using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
-            string startPhase = "hey Marcus";
+            string startPhase = "hey AI";
             var phraseList = PhraseListGrammar.FromRecognizer(speechRecognizer);
             phraseList.AddPhrase(startPhase);
 
@@ -264,7 +264,10 @@ namespace VRWorld
 
             var obj = new VRWorld.Object(someIdCounter++, JResponce);
             obj.myScale = Vec3.One * 5.0f * U.cm;
-            obj.myPose = Input.Hand(Handed.Right).palm;
+
+            Vec3 offset = new Vec3(0, 4, -7) * U.cm;
+            Matrix matrixOffset = Matrix.T(offset) * Input.Hand(Handed.Right).palm.ToMatrix();
+            obj.myPose.position = matrixOffset.Pose.position;
 
             someObjects.Add(obj);
         }
