@@ -59,9 +59,14 @@ namespace VRWorld
             objects.Add(new VRWorld.Object(myIdCounter++, someData));
             objects.Add(new VRWorld.Object(myIdCounter++, someData));
 
+            //Cordinate system
+            ScalingCoordinateSystem scalingCoordinateSystem = new ScalingCoordinateSystem();
+
+            //Debug window
             Pose debugWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             string debugText = "";
 
+            //Grabbing
             Matrix[] grabedOffsets = new Matrix[(int)Handed.Max] { Matrix.Identity, Matrix.Identity };
             int[] grabedIndexs = new int[(int)Handed.Max] { -1, -1 };
             Handed scalingHand = Handed.Max; //Max is like invalid
@@ -92,13 +97,13 @@ namespace VRWorld
 
                         if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                         {
-                            if (otherGrabedIndex == i) //the other grabed object is this object
+                            if (otherGrabedIndex == i) //Scaling with other hand
                             {
                                 scalingHand = h;
                                 startScale = objects[i].myScale;
                                 startScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
                             }
-                            else
+                            else //Grabbing with first hand
                             {
                                 grabedIndexs[(int)h] = i;
                                 grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
@@ -140,6 +145,18 @@ namespace VRWorld
                     int grabingIndex = grabedIndexs[(int)grabingHand];
 
                     objects[grabingIndex].myScale = startScale * scaleFactor;
+                }
+
+                //Cordinate system
+                if (grabedIndexs[(int)Handed.Left] != -1 && grabedIndexs[(int)Handed.Right] == -1)
+                {
+                    int oneGrabedIndex = grabedIndexs[(int)Handed.Left];
+                    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Left);
+                }
+                else if (grabedIndexs[(int)Handed.Left] == -1 && grabedIndexs[(int)Handed.Right] != -1)
+                {
+                    int oneGrabedIndex = grabedIndexs[(int)Handed.Right];
+                    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Right);
                 }
 
                 //Draw the object
