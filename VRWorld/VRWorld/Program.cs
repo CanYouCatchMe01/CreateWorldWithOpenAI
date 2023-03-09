@@ -34,7 +34,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            string aiText = "Create a json block from prompt.\nExample:\ntext:create a blue cube\njson:{\"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:\n";
+            string aiText = "Create a json block from prompt.\nExample:\ntext:create a blue cube\njson:{\"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:";
             string startSequence = "\njson:";
             string restartSequence = "\ntext:\n";
             Task<CompletionResult> generateTask = null;
@@ -48,6 +48,10 @@ namespace VRWorld
             using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
             using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
+            string startPhase = "hey Marcus";
+            var phraseList = PhraseListGrammar.FromRecognizer(speechRecognizer);
+            phraseList.AddPhrase(startPhase);
+
             speechRecognizer.Recognizing += (s, e) =>
             {
                 speechText = e.Result.Text;
@@ -55,8 +59,17 @@ namespace VRWorld
 
             speechRecognizer.Recognized += (s, e) => //User finished speeching
             {
-                aiText += speechText + startSequence;
-                generateTask = GenerateAIResponce(api, aiText);
+                speechText = e.Result.Text;
+
+                
+                int index = speechText.IndexOf(startPhase, StringComparison.CurrentCultureIgnoreCase);
+
+                if (index != -1)
+                {
+                    string substring = speechText.Substring(index + startPhase.Length);
+                    aiText += substring + startSequence;
+                    generateTask = GenerateAIResponce(api, aiText);
+                }
             };
             
             speechRecognizer.StartContinuousRecognitionAsync().Wait();
@@ -99,7 +112,7 @@ namespace VRWorld
             ScalingCoordinateSystem scalingCoordinateSystem = new ScalingCoordinateSystem();
 
             //Debug window
-            Pose AIWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
+            Pose AIWindowPose = new Pose(0.0f, 0.09f, -0.32f, Quat.LookDir(-0.0f, 0.09f, 0.71f));
             Pose debugWindowPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
             string debugText = "";
 
