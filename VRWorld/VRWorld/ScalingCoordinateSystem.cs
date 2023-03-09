@@ -43,17 +43,20 @@ namespace VRWorld
             aModel.Draw(pinArmMatrix, color);
             aModel.Draw(pinHeadMatrix, color);
         }
-        private void Draw(Model aModel, Pose anObjectPose)
+        private void Draw(Model aModel, Pose anObjectPose, Handed aHand)
         {
             aModel.Draw(anObjectPose.ToMatrix(myCenterScale), new Color(0.5f, 0.5f, 0.5f)); //gray middle
-            DrawPin(aModel, anObjectPose, new Vec3(0, 0, 0), new Color(1.0f, 0.0f, 0.0f)); //red x
+
+            float xAxisRot = aHand == Handed.Right ? 180.0f : 0.0f;
+
+            DrawPin(aModel, anObjectPose, new Vec3(0, xAxisRot, 0), new Color(1.0f, 0.0f, 0.0f)); //red x
             DrawPin(aModel, anObjectPose, new Vec3(0, 0, 90), new Color(0.0f, 1.0f, 0.0f)); //green y
             DrawPin(aModel, anObjectPose, new Vec3(0, 90, 0), new Color(0.0f, 0.0f, 1.0f)); //blue z
         }
-        public void Draw(Pose anObjectPose)
+        public void Draw(Pose anObjectPose, Handed aHand)
         {
-            Draw(myAlwaysModel, anObjectPose);
-            Draw(myLessModel, anObjectPose);
+            Draw(myAlwaysModel, anObjectPose, aHand);
+            Draw(myLessModel, anObjectPose, aHand);
         }
     }
 }

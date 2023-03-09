@@ -148,24 +148,18 @@ namespace VRWorld
                 }
 
                 //Cordinate system
-                int oneGrabedIndex = -1;
                 if (grabedIndexs[(int)Handed.Left] != -1 && grabedIndexs[(int)Handed.Right] == -1)
                 {
-                    oneGrabedIndex = grabedIndexs[(int)Handed.Left];
+                    int oneGrabedIndex = grabedIndexs[(int)Handed.Left];
+                    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Left);
                 }
                 else if (grabedIndexs[(int)Handed.Left] == -1 && grabedIndexs[(int)Handed.Right] != -1)
                 {
-                    oneGrabedIndex = grabedIndexs[(int)Handed.Right];
-                }
-                
-                if(oneGrabedIndex != -1)
-                {
-                    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose);
+                    int oneGrabedIndex = grabedIndexs[(int)Handed.Right];
+                    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Right);
                 }
 
-
-
-                    //Draw the object
+                //Draw the object
                 for (int i = 0; i < objects.Count; i++)
                 {
                     objects[i].Draw();
