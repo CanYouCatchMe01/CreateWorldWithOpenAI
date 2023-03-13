@@ -6,6 +6,7 @@ namespace VRWorld
 {
     internal class Program
     {
+        static string myDebugText = "";
         static void Main(string[] args)
         {
             // Initialize StereoKit
@@ -48,43 +49,27 @@ namespace VRWorld
             ScalingCoordinateSystem scalingCoordinateSystem = new ScalingCoordinateSystem();
 
             //Debug window
-            Pose AIWindowPose = new Pose(0.0f, 0.09f, -0.32f, Quat.LookDir(-0.0f, 0.09f, 0.71f));
+            Pose aiWindowPose = new Pose(0.0f, 0.09f, -0.32f, Quat.LookDir(-0.0f, 0.09f, 0.71f));
             Pose debugWindowPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
-            string debugText = "";
             
             OpenAISpeech.Start();
 
             // Core application loop
             while (SK.Step(() =>
             {
-                debugText = ""; //clear
+                myDebugText = ""; //clear
 
                 OpenAISpeech.Update(world);
                 Grabbing.Update(world);
-                Render(world);
-
-                //Debug window
-                UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm);
-                UI.Text(debugText);
-                UI.WindowEnd();
-
-                //Chat window
-                UI.WindowBegin("Open AI window", ref AIWindowPose, new Vec2(30, 0) * U.cm);
-
-                //Get the 200 last characters of aiText
-                int showLength = 200;
-                string showText = OpenAISpeech.myAIText.Length > showLength ? "..." + OpenAISpeech.myAIText.Substring(OpenAISpeech.myAIText.Length - showLength) : OpenAISpeech.myAIText;
-                UI.Text(showText);
-                UI.HSeparator();
-                UI.Label(OpenAISpeech.mySpeechText);
-                UI.WindowEnd();
+                Draw(world);
+                DrawWindows(debugWindowPose, aiWindowPose);
             }));
 
             world.Destroy();
             SK.Shutdown();
         }
 
-        static void Render(SimpleECS.World aWorld)
+        static void Draw(SimpleECS.World aWorld)
         {
             var query = aWorld.CreateQuery().Has(typeof(StereoKit.Model), typeof(StereoKit.Pose));
 
@@ -111,6 +96,27 @@ namespace VRWorld
                 Matrix matrix = pose.ToMatrix(scale);
                 model.Draw(matrix, color);
             });
+        }
+
+        static void DrawWindows(Pose debugWindowPose, Pose aiWindowPose)
+        {
+            //Debug window
+            {
+                UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
+                UI.Text(myDebugText);
+                UI.WindowEnd();
+            }
+            //Chat window
+            {
+                UI.WindowBegin("Open AI window", ref aiWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
+                //Get the 200 last characters of aiText
+                int showLength = 200;
+                string showText = OpenAISpeech.myAIText.Length > showLength ? "..." + OpenAISpeech.myAIText.Substring(OpenAISpeech.myAIText.Length - showLength) : OpenAISpeech.myAIText;
+                UI.Text(showText);
+                UI.HSeparator();
+                UI.Label(OpenAISpeech.mySpeechText);
+                UI.WindowEnd();
+            }            
         }
     }
 }

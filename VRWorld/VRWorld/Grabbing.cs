@@ -36,7 +36,7 @@ namespace VRWorld
         {
             Grab(aWorld);
             Scale();
-            RenderCoordinateSystem();
+            DrawCoordinateSystem();
         }
 
         static void Grab(SimpleECS.World aWorld)
@@ -51,40 +51,64 @@ namespace VRWorld
                 Entity otherGrabedEntity = myGrabDatas[(int)otherHand].myEntity;
 
                 var query = aWorld.CreateQuery().Has(typeof(Pose), typeof(Vec3), typeof(Grabbable));
-                query.Foreach((Entity entity, ref StereoKit.Model model, ref StereoKit.Pose pose, ref StereoKit.Vec3 scale) =>
+                bool foundObject = false;
+
+                //very ugly function for finding the grabed object
+                foreach (var archetype in query)
                 {
-                    Bounds bounds = model.Bounds;
-                    bounds.dimensions *= scale * 1.5f;
-                    bounds.center += pose.position;
-
-                    if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
+                    if (archetype.TryGetEntityBuffer(out Entity[] entityBuffer) &&
+                        archetype.TryGetComponentBuffer(out Model[] modelBuffer) &&
+                        archetype.TryGetComponentBuffer(out Pose[] poseBuffer) &&
+                        archetype.TryGetComponentBuffer(out Vec3[] scaleBuffer))
                     {
-                        if (otherGrabedEntity == entity) //Scaling with other hand
+                        for (int i = 0; i < archetype.EntityCount; ++i)
                         {
-                            myScalingHand = h;
-                            myStartScale = scale;
-                            myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
-                        }
-                        else //Grabbing with first hand
-                        {
-                            myGrabDatas[(int)h].myEntity = entity;
-                            myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
-                        }
-                    }
+                            Entity entity = entityBuffer[i];
+                            Model model = modelBuffer[i];
+                            Pose pose = poseBuffer[i];
+                            Vec3 scale = scaleBuffer[i];
 
-                    //Move the grabed object
-                    if (hand.IsPinched && myGrabDatas[(int)h].myEntity.IsValid())
-                    {
-                        Matrix newMatrix = myGrabDatas[(int)h].myOffset * handMatrix;
-                        myGrabDatas[(int)h].myEntity.Get<Pose>() = newMatrix.Pose;
+                            Bounds bounds = model.Bounds;
+                            bounds.dimensions *= scale * 1.5f;
+                            bounds.center += pose.position;
+
+                            if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
+                            {
+                                if (otherGrabedEntity == entity) //Scaling with other hand
+                                {
+                                    myScalingHand = h;
+                                    myStartScale = scale;
+                                    myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+                                }
+                                else //Grabbing with first hand
+                                {
+                                    myGrabDatas[(int)h].myEntity = entity;
+                                    myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
+                                }
+                                foundObject = true;
+                            }
+
+                            if (foundObject)
+                                break;
+                        }
+
+                        if (foundObject)
+                            break;
                     }
-                    //Ungrab the object
-                    else if (hand.IsJustUnpinched)
-                    {
-                        myGrabDatas[(int)h].myEntity = new Entity();
-                        myScalingHand = Handed.Max;
-                    }
-                });
+                }
+
+                //Move the grabed object
+                if (hand.IsPinched && myGrabDatas[(int)h].myEntity.IsValid())
+                {
+                    Matrix newMatrix = myGrabDatas[(int)h].myOffset * handMatrix;
+                    myGrabDatas[(int)h].myEntity.Get<Pose>() = newMatrix.Pose;
+                }
+                //Ungrab the object
+                else if (hand.IsJustUnpinched)
+                {
+                    myGrabDatas[(int)h].myEntity = new Entity();
+                    myScalingHand = Handed.Max;
+                }
             }
         }
 
@@ -103,7 +127,7 @@ namespace VRWorld
             }
         }
 
-        static void RenderCoordinateSystem()
+        static void DrawCoordinateSystem()
         {
             Entity leftEntity = myGrabDatas[(int)Handed.Left].myEntity;
             Entity rightEntity = myGrabDatas[(int)Handed.Right].myEntity;
