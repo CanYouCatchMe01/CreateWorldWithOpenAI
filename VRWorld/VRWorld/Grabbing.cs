@@ -68,11 +68,13 @@ namespace VRWorld
                             Pose pose = poseBuffer[i];
                             Vec3 scale = scaleBuffer[i];
 
+                            //Getting pinch point in object bounds space for more exact collision check
+                            float scaleFactor = 1.5f; //Make bounds a bit bigger
+                            Matrix objectMatrix = pose.ToMatrix(scale * scaleFactor);
+                            Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
                             Bounds bounds = model.Bounds;
-                            bounds.dimensions *= scale * 1.5f;
-                            bounds.center += pose.position;
 
-                            if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
+                            if (hand.IsJustPinched && bounds.Contains(pinchPtObjectSpace))
                             {
                                 if (otherGrabedEntity == entity) //Scaling with other hand
                                 {
