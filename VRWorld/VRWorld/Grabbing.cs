@@ -25,15 +25,18 @@ namespace VRWorld
         static Handed myScalingHand = Handed.Max; //Max is like invalid
         static Vec3 myStartScale = Vec3.Zero;
         static float myStartScaleDistance = 0.0f;
+        static ScalingCoordinateSystem myScalingCoordinateSystem = new ScalingCoordinateSystem();
 
         public static void Start()
         {
-            
+
         }
 
         public static void Update(SimpleECS.World aWorld)
         {
             Grab(aWorld);
+            Scale();
+            RenderCoordinateSystem();
         }
 
         static void Grab(SimpleECS.World aWorld)
@@ -46,14 +49,14 @@ namespace VRWorld
                 Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
 
                 Entity otherGrabedEntity = myGrabDatas[(int)otherHand].myEntity;
-                
+
                 var query = aWorld.CreateQuery().Has(typeof(Pose), typeof(Vec3), typeof(Grabbable));
                 query.Foreach((Entity entity, ref StereoKit.Model model, ref StereoKit.Pose pose, ref StereoKit.Vec3 scale) =>
                 {
                     Bounds bounds = model.Bounds;
                     bounds.dimensions *= scale * 1.5f;
                     bounds.center += pose.position;
-                    
+
                     if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
                     {
                         if (otherGrabedEntity == entity) //Scaling with other hand
@@ -82,6 +85,38 @@ namespace VRWorld
                         myScalingHand = Handed.Max;
                     }
                 });
+            }
+        }
+
+        static void Scale()
+        {
+            if (myScalingHand != Handed.Max)
+            {
+                float currentScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+
+                float scaleFactor = currentScalingDistance / myStartScaleDistance;
+
+                Handed grabingHand = myScalingHand == Handed.Right ? Handed.Left : Handed.Right;
+                Entity grabingEntity = myGrabDatas[(int)grabingHand].myEntity;
+
+                grabingEntity.Get<Vec3>() = myStartScale * scaleFactor;
+            }
+        }
+
+        static void RenderCoordinateSystem()
+        {
+            Entity leftEntity = myGrabDatas[(int)Handed.Left].myEntity;
+            Entity rightEntity = myGrabDatas[(int)Handed.Right].myEntity;
+
+            if (leftEntity.IsValid() && !rightEntity.IsValid())
+            {
+                Pose pose = leftEntity.Get<Pose>();
+                myScalingCoordinateSystem.Draw(pose, Handed.Left);
+            }
+            else if (!leftEntity.IsValid() && rightEntity.IsValid())
+            {
+                Pose pose = rightEntity.Get<Pose>();
+                myScalingCoordinateSystem.Draw(pose, Handed.Right);
             }
         }
     }
