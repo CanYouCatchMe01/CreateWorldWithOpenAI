@@ -3,6 +3,7 @@ using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using OpenAI_API.Completions;
+using StereoKit;
 using System.Threading.Tasks;
 
 namespace VRWorld
@@ -37,7 +38,7 @@ namespace VRWorld
 
             myKeywordModel = KeywordRecognitionModel.FromFile("Assets/HeyComputer.table");
             using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
-            audioConfig.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "3000");
+            //audioConfig.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "3000");
             mySpeechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
             var phraseList = PhraseListGrammar.FromRecognizer(mySpeechRecognizer);
@@ -95,14 +96,55 @@ namespace VRWorld
         {
             JObject JResponce = JObject.Parse(aResponce);
 
-            //var obj = new VRWorld.Object(someIdCounter++, JResponce);
-            //obj.myScale = Vec3.One * 5.0f * U.cm;
+            SimpleECS.Entity entity = aWorld.CreateEntity(new Grabbable());
+            
+            //Pose
+            Pose pose = Pose.Identity;
+            Vec3 offset = new Vec3(0, 4, -7) * U.cm;
+            Matrix matrixOffset = Matrix.T(offset) * Input.Hand(Handed.Right).palm.ToMatrix();
+            pose.position = matrixOffset.Pose.position;
+            entity.Set(pose);
 
-            //Vec3 offset = new Vec3(0, 4, -7) * U.cm;
-            //Matrix matrixOffset = Matrix.T(offset) * Input.Hand(Handed.Right).palm.ToMatrix();
-            //obj.myPose.position = matrixOffset.Pose.position;
+            //Scale
+            Vec3 scale = Vec3.One * 5.0f * U.cm;
+            entity.Set(scale);
 
-            //someObjects.Add(obj);
+            JResponce.TryGetValue("shape", out JToken JShape);
+            JResponce.TryGetValue("color", out JToken JColor);
+
+            //Mesh
+            if (JShape != null)
+            {
+                string str = JShape.ToString();
+                StereoKit.Model model;
+
+                if (str == "cube")
+                {
+                    model = StereoKit.Model.FromMesh(Mesh.Cube, Material.UI);
+                }
+                else if (str == "sphere")
+                {
+                    model = StereoKit.Model.FromMesh(Mesh.Sphere, Material.UI);
+                }
+                else if (str == "cylinder")
+                {
+                    Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
+                    model = StereoKit.Model.FromMesh(cylinder, Material.UI);
+                }
+                //continue with more meshes
+                else //default cube
+                {
+                    model = StereoKit.Model.FromMesh(Mesh.Cube, Material.UI);
+                }
+
+                entity.Set(model);
+            }
+            //Color
+            if (JColor != null)
+            {
+                StereoKit.Color color = JSONConverter.FromJSONColor((JObject)JColor);
+                entity.Set(color);
+            }
         }
     }
 }
