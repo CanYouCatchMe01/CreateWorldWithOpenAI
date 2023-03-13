@@ -69,25 +69,32 @@ namespace VRWorld
                             Vec3 scale = scaleBuffer[i];
 
                             //Getting pinch point in object bounds space for more exact collision check
-                            float scaleFactor = 1.5f; //Make bounds a bit bigger
-                            Matrix objectMatrix = pose.ToMatrix(scale * scaleFactor);
+                            Matrix objectMatrix = pose.ToMatrix(scale * 1.5f);
                             Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
                             Bounds bounds = model.Bounds;
 
-                            if (hand.IsJustPinched && bounds.Contains(pinchPtObjectSpace))
+                            if (bounds.Contains(pinchPtObjectSpace))
                             {
-                                if (otherGrabedEntity == entity) //Scaling with other hand
+                                if (hand.IsJustPinched)
                                 {
-                                    myScalingHand = h;
-                                    myStartScale = scale;
-                                    myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+                                    if (otherGrabedEntity == entity) //Scaling with other hand
+                                    {
+                                        myScalingHand = h;
+                                        myStartScale = scale;
+                                        myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+                                    }
+                                    else //Grabbing with first hand
+                                    {
+                                        myGrabDatas[(int)h].myEntity = entity;
+                                        myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
+                                    }
+                                    foundObject = true;
                                 }
-                                else //Grabbing with first hand
-                                {
-                                    myGrabDatas[(int)h].myEntity = entity;
-                                    myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
-                                }
-                                foundObject = true;
+
+                                //if (!myGrabDatas[(int)h].myEntity.IsValid())
+                                //{
+                                //    DrawBounds(pose, scale * 1.3f, bounds);
+                                //}
                             }
 
                             if (foundObject)
@@ -144,6 +151,38 @@ namespace VRWorld
                 Pose pose = rightEntity.Get<Pose>();
                 myScalingCoordinateSystem.Draw(pose, Handed.Right);
             }
+        }
+
+        static void DrawBounds(Pose aPose, Vec3 aScale, Bounds aBounds)
+        {
+            Matrix boundsMatrix = Matrix.TS(aBounds.center, aBounds.dimensions);
+            Matrix globalBoundsMatrix = boundsMatrix * aPose.ToMatrix(aScale);
+
+            Vec3 leftTopForward = globalBoundsMatrix * new Vec3(-0.5f, 0.5f, 0.5f);
+            Vec3 rightTopForward = globalBoundsMatrix * new Vec3(0.5f, 0.5f, 0.5f);
+            Vec3 leftBottomForward = globalBoundsMatrix * new Vec3(-0.5f, -0.5f, 0.5f);
+            Vec3 rightBottomForward = globalBoundsMatrix * new Vec3(0.5f, -0.5f, 0.5f);
+            Vec3 leftTopBack = globalBoundsMatrix * new Vec3(-0.5f, 0.5f, -0.5f);
+            Vec3 rightTopBack = globalBoundsMatrix * new Vec3(0.5f, 0.5f, -0.5f);
+            Vec3 leftBottomBack = globalBoundsMatrix * new Vec3(-0.5f, -0.5f, -0.5f);
+            Vec3 rightBottomBack = globalBoundsMatrix * new Vec3(0.5f, -0.5f, -0.5f);
+
+            float thickness = 0.5f * U.cm;
+            Color color = Color.White;
+
+            Lines.Add(leftTopForward, rightTopForward, color, thickness);
+            Lines.Add(leftTopForward, leftBottomForward, color, thickness);
+            Lines.Add(leftTopForward, leftTopBack, color, thickness);
+            Lines.Add(rightTopForward, rightBottomForward, color, thickness);
+            Lines.Add(rightTopForward, rightTopBack, color, thickness);
+            Lines.Add(leftBottomForward, rightBottomForward, color, thickness);
+            Lines.Add(leftBottomForward, leftBottomBack, color, thickness);
+            Lines.Add(rightBottomForward, rightBottomBack, color, thickness);
+            Lines.Add(leftTopBack, rightTopBack, color, thickness);
+            Lines.Add(leftTopBack, leftBottomBack, color, thickness);
+            Lines.Add(rightTopBack, rightBottomBack, color, thickness);
+            Lines.Add(leftBottomBack, rightBottomBack, color, thickness);
+
         }
     }
 }
