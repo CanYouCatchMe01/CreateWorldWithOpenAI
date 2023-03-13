@@ -30,7 +30,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            myAIText = "Create a json block from prompt.\nExample:\ntext:create a blue cube\njson:{\"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}\ntext:";
+            myAIText = "Create a json block from prompt.\nExample:\ntext: create three blue cube cubes and two white spheres on my left hand\njson:{\"objects\": [{\"count\": 3, \"hand\": \"right\", \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}, {\"count\": 2, \"hand\": \"left\", \"shape\": \"sphere\", \"color\": {\"r\": 1.0, \"g\": 1.0, \"b\": 1.0}}]}\ntext:";
 
             //Azure speech
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
@@ -95,55 +95,74 @@ namespace VRWorld
         static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
             JObject JResponce = JObject.Parse(aResponce);
+            JArray JObjects = (JArray)JResponce["objects"];
 
-            SimpleECS.Entity entity = aWorld.CreateEntity(new Grabbable());
-            
-            //Pose
-            Pose pose = Pose.Identity;
-            Vec3 offset = new Vec3(0, 4, -7) * U.cm;
-            Matrix matrixOffset = Matrix.T(offset) * Input.Hand(Handed.Right).palm.ToMatrix();
-            pose.position = matrixOffset.Pose.position;
-            entity.Set(pose);
+            int[] handCount = new int[(int)Handed.Max] { 0, 0 };
 
-            //Scale
-            Vec3 scale = Vec3.One * 5.0f * U.cm;
-            entity.Set(scale);
-
-            JResponce.TryGetValue("shape", out JToken JShape);
-            JResponce.TryGetValue("color", out JToken JColor);
-
-            //Mesh
-            if (JShape != null)
+            foreach (JObject JObject in JObjects)
             {
-                string str = JShape.ToString();
-                StereoKit.Model model;
-
-                if (str == "cube")
+                int count = 1;
+                if(JObject.TryGetValue("count", out JToken JCount))
                 {
-                    model = StereoKit.Model.FromMesh(Mesh.Cube, Material.UI);
-                }
-                else if (str == "sphere")
-                {
-                    model = StereoKit.Model.FromMesh(Mesh.Sphere, Material.UI);
-                }
-                else if (str == "cylinder")
-                {
-                    Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
-                    model = StereoKit.Model.FromMesh(cylinder, Material.UI);
-                }
-                //continue with more meshes
-                else //default cube
-                {
-                    model = StereoKit.Model.FromMesh(Mesh.Cube, Material.UI);
+                    count = (int)JCount;
                 }
 
-                entity.Set(model);
-            }
-            //Color
-            if (JColor != null)
-            {
-                StereoKit.Color color = JSONConverter.FromJSONColor((JObject)JColor);
-                entity.Set(color);
+                Handed hand = Handed.Right;
+                if (JObject.TryGetValue("hand", out JToken JHand))
+                {
+                    if (JHand.ToString().Equals("left", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        hand = Handed.Left;
+                    }
+                }
+
+                Material material = Material.UI;
+                StereoKit.Model model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+
+                Vec3 scale = Vec3.One * 5.0f * U.cm;
+                StereoKit.Color color = StereoKit.Color.White;
+
+                JObject.TryGetValue("shape", out JToken JShape);
+                JObject.TryGetValue("color", out JToken JColor);
+
+                //Mesh
+                if (JShape != null)
+                {
+                    string str = JShape.ToString();
+
+                    if (str == "cube")
+                    {
+                        model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+                    }
+                    else if (str == "sphere")
+                    {
+                        model = StereoKit.Model.FromMesh(Mesh.Sphere, material);
+                    }
+                    else if (str == "cylinder")
+                    {
+                        Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
+                        model = StereoKit.Model.FromMesh(cylinder, material);
+                    }
+                    //continue with more meshes
+                }
+                //Color
+                if (JColor != null)
+                {
+                    color = JSONConverter.FromJSONColor((JObject)JColor);
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    //Pose
+                    Pose pose = Pose.Identity;
+                    Vec3 offset = new Vec3(0, 4, -7 * handCount[(int)hand]) * U.cm;
+                    Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
+                    pose.position = matrixOffset.Pose.position;
+                    
+                    aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
+
+                    handCount[(int)hand]++;
+                }
             }
         }
     }

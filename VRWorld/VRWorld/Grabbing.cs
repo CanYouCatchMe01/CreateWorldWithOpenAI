@@ -69,7 +69,7 @@ namespace VRWorld
                             Vec3 scale = scaleBuffer[i];
 
                             //Getting pinch point in object bounds space for more exact collision check
-                            Matrix objectMatrix = pose.ToMatrix(scale * 1.5f);
+                            Matrix objectMatrix = pose.ToMatrix(scale + Vec3.One * 2.5f * U.cm);
                             Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
                             Bounds bounds = model.Bounds;
 
