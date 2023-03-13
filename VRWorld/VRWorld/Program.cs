@@ -45,12 +45,13 @@ namespace VRWorld
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
             speechConfig.SpeechRecognitionLanguage = "en-US";
 
+            var keywordModel = KeywordRecognitionModel.FromFile("Assets/HeyComputer.table");
             using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+            audioConfig.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "3000");
             using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
 
-            string startPhase = "hey AI";
             var phraseList = PhraseListGrammar.FromRecognizer(speechRecognizer);
-            phraseList.AddPhrase(startPhase);
+            phraseList.AddPhrase("create");
 
             speechRecognizer.Recognizing += (s, e) =>
             {
@@ -59,20 +60,15 @@ namespace VRWorld
 
             speechRecognizer.Recognized += (s, e) => //User finished speeching
             {
-                speechText = e.Result.Text;
-
-                
-                int index = speechText.IndexOf(startPhase, StringComparison.CurrentCultureIgnoreCase);
-
-                if (index != -1)
+                if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
-                    string substring = speechText.Substring(index + startPhase.Length);
-                    aiText += substring + startSequence;
+                    speechText = e.Result.Text;
+                    aiText += speechText + startSequence;
                     generateTask = GenerateAIResponce(api, aiText);
                 }
             };
-            
-            speechRecognizer.StartContinuousRecognitionAsync().Wait();
+
+            speechRecognizer.StartKeywordRecognitionAsync(keywordModel).Wait();
 
             //GameObjects are stored in a list
             int myIdCounter = 0;
@@ -221,6 +217,7 @@ namespace VRWorld
                     HandleAIResponce(responce, objects, myIdCounter);
                     aiText += responce + restartSequence;
                     generateTask = null;
+                    speechRecognizer.StartKeywordRecognitionAsync(keywordModel).Wait();
                 }
 
                 //Debug window
