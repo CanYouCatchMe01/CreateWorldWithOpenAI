@@ -41,7 +41,7 @@ namespace VRWorld
                 Vec3 scale = Vec3.One * 5.0f * U.cm;
                 Color color = new Color(1, 1, 0); //yellow
 
-                world.CreateEntity(model, pose, scale, color);
+                world.CreateEntity(model, pose, scale, color, new Grabbable());
             }
 
             //Cordinate system
@@ -51,14 +51,7 @@ namespace VRWorld
             Pose AIWindowPose = new Pose(0.0f, 0.09f, -0.32f, Quat.LookDir(-0.0f, 0.09f, 0.71f));
             Pose debugWindowPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
             string debugText = "";
-
-            //Grabbing
-            Matrix[] grabedOffsets = new Matrix[(int)Handed.Max] { Matrix.Identity, Matrix.Identity };
-            int[] grabedIndexs = new int[(int)Handed.Max] { -1, -1 };
-            Handed scalingHand = Handed.Max; //Max is like invalid
-            Vec3 startScale = Vec3.Zero;
-            float startScalingDistance = 0.0f;
-
+            
             OpenAISpeech.Start();
 
             // Core application loop
@@ -67,86 +60,7 @@ namespace VRWorld
                 debugText = ""; //clear
 
                 OpenAISpeech.Update(world);
-
-                ////Seeing which object that is grabed
-                //for (Handed h = 0; h < Handed.Max; h++)
-                //{
-                //    Hand hand = Input.Hand(h);
-                //    Handed otherHand = h == Handed.Right ? Handed.Left : Handed.Right;
-                //    Matrix handMatrix = Matrix.TR(hand.pinchPt, hand.palm.orientation);
-
-                //    int otherGrabedIndex = grabedIndexs[(int)otherHand];
-
-                //    for (int i = 0; i < objects.Count; i++)
-                //    {
-                //        Bounds bounds = objects[i].myModel.Bounds;
-                //        bounds.dimensions *= objects[i].myScale * 1.5f;
-                //        bounds.center += objects[i].myPose.position;
-
-                //        if (hand.IsJustPinched && bounds.Contains(hand.pinchPt))
-                //        {
-                //            if (otherGrabedIndex == i) //Scaling with other hand
-                //            {
-                //                scalingHand = h;
-                //                startScale = objects[i].myScale;
-                //                startScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
-                //            }
-                //            else //Grabbing with first hand
-                //            {
-                //                grabedIndexs[(int)h] = i;
-                //                grabedOffsets[(int)h] = objects[i].myPose.ToMatrix() * handMatrix.Inverse;
-                //            }
-                //            break;
-                //        }
-                //    }
-
-                //    //Move the grabed object
-                //    if (hand.IsPinched && grabedIndexs[(int)h] != -1)
-                //    {
-                //        Matrix newMatrix = grabedOffsets[(int)h] * handMatrix;
-                //        objects[grabedIndexs[(int)h]].myPose = newMatrix.Pose;
-
-                //        //debugText += "pos offset" + grabedOffsets[(int)h].Pose.position + "\n";
-                //        //debugText += "rot offset" + grabedOffsets[(int)h].Pose.orientation + "\n";
-                //    }
-                //    //Ungrab the object
-                //    else if (hand.IsJustUnpinched)
-                //    {
-                //        grabedIndexs[(int)h] = -1;
-                //        scalingHand = Handed.Max;
-                //    }
-
-                //    //debugText += "scaling hand" + scalingHand + "\n";
-                //}
-
-                //if (scalingHand != Handed.Max)
-                //{
-                //    float currentScalingDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
-
-                //    float scaleFactor = currentScalingDistance / startScalingDistance;
-
-                //    debugText += "currentDistance" + startScalingDistance + "\n";
-                //    debugText += "startDistance" + currentScalingDistance + "\n";
-                //    debugText += "scaleFactor" + scaleFactor + "\n";
-
-                //    Handed grabingHand = scalingHand == Handed.Right ? Handed.Left : Handed.Right;
-                //    int grabingIndex = grabedIndexs[(int)grabingHand];
-
-                //    objects[grabingIndex].myScale = startScale * scaleFactor;
-                //}
-
-                ////Cordinate system
-                //if (grabedIndexs[(int)Handed.Left] != -1 && grabedIndexs[(int)Handed.Right] == -1)
-                //{
-                //    int oneGrabedIndex = grabedIndexs[(int)Handed.Left];
-                //    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Left);
-                //}
-                //else if (grabedIndexs[(int)Handed.Left] == -1 && grabedIndexs[(int)Handed.Right] != -1)
-                //{
-                //    int oneGrabedIndex = grabedIndexs[(int)Handed.Right];
-                //    scalingCoordinateSystem.Draw(objects[oneGrabedIndex].myPose, Handed.Right);
-                //}
-
+                Grabbing.Update(world);
                 Render(world);
 
                 //Debug window
