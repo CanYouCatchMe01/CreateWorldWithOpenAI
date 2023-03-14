@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using StereoKit;
 using SimpleECS;
 using System.Numerics;
+using System.ComponentModel.DataAnnotations;
 
 namespace VRWorld
 {
@@ -38,7 +39,7 @@ namespace VRWorld
             Grab(aWorld);
             Scale();
             DrawCoordinateSystem();
-            VRWorld.Program.myDebugText = myScaleAxis.ToString();
+            VRWorld.Program.myDebugText += myScaleAxis.ToString() + "\n";
         }
 
         static void Grab(SimpleECS.World aWorld)
@@ -178,6 +179,42 @@ namespace VRWorld
                 myScalingCoordinateSystem.Draw(pose, Handed.Right);
             }
         }
+
+        public static Entity GetPointingEntity(SimpleECS.World aWorld, Handed ahand)
+        {
+            float closestDistance = float.MaxValue;
+            Entity closestEntity = new Entity();
+            var query = aWorld.CreateQuery().Has(typeof(Pose), typeof(Vec3), typeof(Grabbable), typeof(Model));
+
+            Hand hand = Input.Hand(ahand);
+            Pose fingertip = hand[FingerId.Index, JointId.Tip].Pose;
+
+            query.Foreach((Entity entity, ref Pose pose, ref StereoKit.Vec3 scale, ref StereoKit.Model model) =>
+            {
+                Matrix objectMatrix = pose.ToMatrix(scale);
+                Matrix fingerInObjectSpace = objectMatrix.Inverse * fingertip.ToMatrix();
+
+                Vector3 fingerForward = fingerInObjectSpace.Pose.orientation * Vec3.Forward;
+                Ray ray = new Ray(fingerInObjectSpace.Pose.position, fingerForward);
+
+                Bounds bounds = model.Bounds;
+
+                if (bounds.Intersect(ray, out Vec3 at))
+                {
+                    float distance = (at - fingerInObjectSpace.Pose.position).Length;
+
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closestEntity = entity;
+                    }
+                }
+            });
+
+            return closestEntity;
+
+        }
+            
         
         public static void DrawBounds(Matrix aMatrix, Bounds aBounds)
         {

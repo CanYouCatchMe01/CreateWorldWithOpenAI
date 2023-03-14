@@ -63,6 +63,14 @@ namespace VRWorld
                 Grabbing.Update(world);
                 Draw(world);
                 DrawWindows(debugWindowPose, aiWindowPose);
+
+                Entity pointingEntity = Grabbing.GetPointingEntity(world, Handed.Right);
+
+                if (pointingEntity.IsValid())
+                {
+                    myDebugText += "Pointing entity: " + pointingEntity.ToString() + "\n";
+                }
+                
             }));
 
             world.Destroy();
