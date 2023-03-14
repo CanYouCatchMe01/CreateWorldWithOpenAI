@@ -26,6 +26,7 @@ namespace VRWorld
         static Vec3 myStartScale = Vec3.Zero;
         static float myStartScaleDistance = 0.0f;
         static ScalingCoordinateSystem myScalingCoordinateSystem = new ScalingCoordinateSystem();
+        static eScaleAxis myScalingAxis;
 
         public static void Start()
         {

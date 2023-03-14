@@ -4,9 +4,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace VRWorld
 {
+    enum eScaleAxis
+    {
+        x,
+        y,
+        z,
+        uniform,
+        none
+    }
+
     internal class ScalingCoordinateSystem
     {
         Vec3 myCenterScale = Vec3.One * 1.3f * U.cm;
@@ -34,11 +44,22 @@ namespace VRWorld
 
         }
 
-        private void DrawPin(Model aModel, Pose anObjectPose, Vec3 aRotation, Color color)
+        private Matrix GetPinArmMatrix(Pose anObjectPose, Vec3 aRotation)
         {
             Quat quatRotation = Quat.FromAngles(aRotation);
-            Matrix pinArmMatrix = Matrix.S(myPinArmScale) * Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
-            Matrix pinHeadMatrix = Matrix.S(myPinHeadScale) * Matrix.T(Vec3.Right * myPinArmScale.x) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
+            return Matrix.S(myPinArmScale) * Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
+        }
+
+        private Matrix GetPinHeadMatrix(Pose anObjectPose, Vec3 aRotation)
+        {
+            Quat quatRotation = Quat.FromAngles(aRotation);
+            return Matrix.S(myPinHeadScale) * Matrix.T(Vec3.Right * myPinArmScale.x) * Matrix.R(quatRotation) * anObjectPose.ToMatrix();
+        }
+
+        private void DrawPin(Model aModel, Pose anObjectPose, Vec3 aRotation, Color color)
+        {
+            Matrix pinArmMatrix = GetPinArmMatrix(anObjectPose, aRotation);
+            Matrix pinHeadMatrix = GetPinHeadMatrix(anObjectPose, aRotation);
 
             aModel.Draw(pinArmMatrix, color);
             aModel.Draw(pinHeadMatrix, color);
@@ -57,6 +78,46 @@ namespace VRWorld
         {
             Draw(myAlwaysModel, anObjectPose, aHand);
             Draw(myLessModel, anObjectPose, aHand);
+        }
+
+        public eScaleAxis GetScaleAxis(Pose anObjectPose, Vec3 anObjectScale, Bounds aObjectBounds, Handed aHand)
+        {
+            float xAxisRot = aHand == Handed.Right ? 180.0f : 0.0f;
+
+            Bounds armBounds = Mesh.Cube.Bounds; //It's a cube
+
+            //Gettings all their global Matrixes
+            Matrix xArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
+            Matrix yArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
+            Matrix zArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
+            Matrix objectMatrix = anObjectPose.ToMatrix(anObjectScale + Vec3.One * 2.5f * U.cm); //Make it a bit bigger for esier grabbing
+
+            //Converting the pinchPt to local space, to check collision with the bounds
+            Hand hand = Input.Hand(aHand);
+            Vec3 pinchPtXAxis = xArmMatrix.Inverse * hand.pinchPt;
+            Vec3 pinchPtYAxis = yArmMatrix.Inverse * hand.pinchPt;
+            Vec3 pinchPtZAxis = zArmMatrix.Inverse * hand.pinchPt;
+            Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
+            if (armBounds.Contains(pinchPtXAxis))
+            {
+                return eScaleAxis.x;
+            }
+            else if (armBounds.Contains(pinchPtYAxis))
+            {
+                return eScaleAxis.y;
+            }
+            else if (armBounds.Contains(pinchPtZAxis))
+            {
+                return eScaleAxis.z;
+            }
+            else if (aObjectBounds.Contains(pinchPtObjectSpace))
+            {
+                return eScaleAxis.uniform;
+            }
+            else
+            {
+                return eScaleAxis.none;
+            }
         }
     }
 }
