@@ -41,8 +41,13 @@ class Program
         var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
         speechConfig.SpeechRecognitionLanguage = "en-US";
 
+        var keywordModel = KeywordRecognitionModel.FromFile("HeyComputer.table");
         using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
+        audioConfig.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "3000");
+
         using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+        var phraseList = PhraseListGrammar.FromRecognizer(speechRecognizer);
+        phraseList.AddPhrase("create");
 
         speechRecognizer.SpeechStartDetected += (s, e) =>
         {
@@ -91,15 +96,15 @@ class Program
         {
             Console.WriteLine("Session stopped event.");
             Console.WriteLine("\nStop recognition.");
-            speechRecognizer.StopContinuousRecognitionAsync().Wait();
+            speechRecognizer.StartKeywordRecognitionAsync(keywordModel).Wait();
         };
 
         Console.WriteLine("Start recognition.");
-        speechRecognizer.StartContinuousRecognitionAsync().Wait();
-        
+        speechRecognizer.StartKeywordRecognitionAsync(keywordModel).Wait();
+
         Console.WriteLine("Press any key to stop1");
         Console.ReadKey();
-        
+
         speechRecognizer.StopContinuousRecognitionAsync().Wait();
         Console.WriteLine("Press any key to stop2");
         Console.ReadKey();
