@@ -86,12 +86,13 @@ namespace VRWorld
 
             Bounds armBounds = Mesh.Cube.Bounds; //It's a cube
 
-            Matrix scaleMatrix = Matrix.S(new Vec3(1.5f,5,5)); //Making the bounds a bit bigger
+            Matrix scaleMatrix = Matrix.S(new Vec3(0.7f,5,5)); //Making the bounds a bit bigger
+            Matrix moveMatrix = Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f); //Making it possible to grab the center
 
             //Gettings all their global Matrixes
-            Matrix xArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
-            Matrix yArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
-            Matrix zArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
+            Matrix xArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
+            Matrix yArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
+            Matrix zArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
             Matrix objectMatrix = anObjectPose.ToMatrix(anObjectScale + Vec3.One * 2.5f * U.cm); //Make it a bit bigger for esier grabbing
 
             //Converting the pinchPt to local space, to check collision with the bounds

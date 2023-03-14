@@ -70,6 +70,9 @@ namespace VRWorld
                             Pose pose = poseBuffer[i];
                             Vec3 scale = scaleBuffer[i];
 
+                            //Debbugging size
+                            myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
+
                             if (hand.IsJustPinched)
                             {
                                 //Getting pinch point in object bounds space for more exact collision check
