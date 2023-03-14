@@ -86,7 +86,7 @@ namespace VRWorld
 
             Bounds armBounds = Mesh.Cube.Bounds; //It's a cube
 
-            Matrix scaleMatrix = Matrix.S(new Vec3(1.1f,4,4));
+            Matrix scaleMatrix = Matrix.S(new Vec3(1.5f,5,5)); //Making the bounds a bit bigger
 
             //Gettings all their global Matrixes
             Matrix xArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));

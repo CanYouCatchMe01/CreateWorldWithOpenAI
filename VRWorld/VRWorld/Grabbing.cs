@@ -85,9 +85,9 @@ namespace VRWorld
                                     if (scaleAxis != eScaleAxis.none)
                                     {
                                         myScaleAxis = scaleAxis;
-                                        //myScalingHand = h;
-                                        //myStartScale = scale;
-                                        //myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+                                        myScalingHand = h;
+                                        myStartScale = scale;
+                                        myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
 
                                         foundObject = true;
                                     }
@@ -135,7 +135,27 @@ namespace VRWorld
                 Handed grabingHand = myScalingHand == Handed.Right ? Handed.Left : Handed.Right;
                 Entity grabingEntity = myGrabDatas[(int)grabingHand].myEntity;
 
-                grabingEntity.Get<Vec3>() = myStartScale * scaleFactor;
+                Vec3 scaleVector = Vec3.One;
+
+                switch (myScaleAxis)
+                {
+                    case eScaleAxis.x:
+                        scaleVector.x = scaleFactor;
+                        break;
+                    case eScaleAxis.y:
+                        scaleVector.y = scaleFactor;
+                        break;
+                    case eScaleAxis.z:
+                        scaleVector.z = scaleFactor;
+                        break;
+                    case eScaleAxis.uniform:
+                        scaleVector *= scaleFactor;
+                        break;
+                    default:
+                        break;
+                }
+
+                grabingEntity.Get<Vec3>() = myStartScale * scaleVector;
             }
         }
 
