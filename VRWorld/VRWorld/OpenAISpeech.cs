@@ -97,6 +97,11 @@ namespace VRWorld
             JObject JResponce = JObject.Parse(aResponce);
             JArray JObjects = (JArray)JResponce["objects"];
 
+            if (JObjects == null)
+            {
+                return;
+            }
+
             int[] handCount = new int[(int)Handed.Max] { 0, 0 };
 
             foreach (JObject JObject in JObjects)

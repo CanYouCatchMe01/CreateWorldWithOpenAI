@@ -86,11 +86,11 @@ namespace VRWorld
 
             Bounds armBounds = Mesh.Cube.Bounds; //It's a cube
 
-            Matrix scaleMatrix = Matrix.S(new Vec3(0.7f,5,5)); //Making the bounds a bit bigger
-            Matrix moveMatrix = Matrix.T(Vec3.Right * myPinArmScale.x / 2.0f); //Making it possible to grab the center
+            Matrix scaleMatrix = Matrix.S(new Vec3(1.0f,10,10)); //Making the bounds a bit bigger
+            Matrix moveMatrix = Matrix.T(Vec3.Right * 0.3f); //Making it possible to grab the center
 
             //Gettings all their global Matrixes
-            Matrix xArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
+            Matrix xArmMatrix = scaleMatrix *  moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
             Matrix yArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
             Matrix zArmMatrix = scaleMatrix * moveMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
             Matrix objectMatrix = anObjectPose.ToMatrix(anObjectScale + Vec3.One * 2.5f * U.cm); //Make it a bit bigger for esier grabbing
@@ -103,9 +103,9 @@ namespace VRWorld
             Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
 
             //Drawing for debugging
-            Grabbing.DrawBounds(xArmMatrix, armBounds);
-            Grabbing.DrawBounds(yArmMatrix, armBounds);
-            Grabbing.DrawBounds(zArmMatrix, armBounds);
+            //Grabbing.DrawBounds(xArmMatrix, armBounds);
+            //Grabbing.DrawBounds(yArmMatrix, armBounds);
+            //Grabbing.DrawBounds(zArmMatrix, armBounds);
 
             if (armBounds.Contains(pinchPtXAxis))
             {

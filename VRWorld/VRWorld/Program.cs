@@ -96,6 +96,8 @@ namespace VRWorld
                 Matrix matrix = pose.ToMatrix(scale);
                 model.Draw(matrix, color);
             });
+
+            //Input.Hand(Handed.Right).Material = Material.Unlit;
         }
 
         static void DrawWindows(Pose debugWindowPose, Pose aiWindowPose)

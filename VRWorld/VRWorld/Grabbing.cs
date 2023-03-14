@@ -71,7 +71,7 @@ namespace VRWorld
                             Vec3 scale = scaleBuffer[i];
 
                             //Debbugging size
-                            myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
+                            //myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
 
                             if (hand.IsJustPinched)
                             {
