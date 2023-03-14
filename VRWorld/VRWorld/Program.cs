@@ -6,7 +6,7 @@ namespace VRWorld
 {
     internal class Program
     {
-        static string myDebugText = "";
+        public static string myDebugText = "";
         static void Main(string[] args)
         {
             // Initialize StereoKit

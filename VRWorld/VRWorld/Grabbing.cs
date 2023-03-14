@@ -26,7 +26,7 @@ namespace VRWorld
         static Vec3 myStartScale = Vec3.Zero;
         static float myStartScaleDistance = 0.0f;
         static ScalingCoordinateSystem myScalingCoordinateSystem = new ScalingCoordinateSystem();
-        static eScaleAxis myScalingAxis;
+        static eScaleAxis myScaleAxis = eScaleAxis.none;
 
         public static void Start()
         {
@@ -38,6 +38,7 @@ namespace VRWorld
             Grab(aWorld);
             Scale();
             DrawCoordinateSystem();
+            VRWorld.Program.myDebugText = myScaleAxis.ToString();
         }
 
         static void Grab(SimpleECS.World aWorld)
@@ -69,33 +70,34 @@ namespace VRWorld
                             Pose pose = poseBuffer[i];
                             Vec3 scale = scaleBuffer[i];
 
-                            //Getting pinch point in object bounds space for more exact collision check
-                            Matrix objectMatrix = pose.ToMatrix(scale + Vec3.One * 2.5f * U.cm);
-                            Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
-                            Bounds bounds = model.Bounds;
-
-                            if (bounds.Contains(pinchPtObjectSpace))
+                            if (hand.IsJustPinched)
                             {
-                                if (hand.IsJustPinched)
+                                //Getting pinch point in object bounds space for more exact collision check
+                                Matrix objectMatrix = pose.ToMatrix(scale + Vec3.One * 2.5f * U.cm);
+                                Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
+                                Bounds bounds = model.Bounds;
+
+                                if (otherGrabedEntity == entity) //Scaling with other hand
                                 {
-                                    if (otherGrabedEntity == entity) //Scaling with other hand
+                                    
+                                    eScaleAxis scaleAxis = myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
+
+                                    if (scaleAxis != eScaleAxis.none)
                                     {
-                                        myScalingHand = h;
-                                        myStartScale = scale;
-                                        myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+                                        myScaleAxis = scaleAxis;
+                                        //myScalingHand = h;
+                                        //myStartScale = scale;
+                                        //myStartScaleDistance = (Input.Hand(Handed.Left).pinchPt - Input.Hand(Handed.Right).pinchPt).Length;
+
+                                        foundObject = true;
                                     }
-                                    else //Grabbing with first hand
-                                    {
-                                        myGrabDatas[(int)h].myEntity = entity;
-                                        myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
-                                    }
+                                }
+                                else if (bounds.Contains(pinchPtObjectSpace)) //Grabbing with first hand
+                                {
+                                    myGrabDatas[(int)h].myEntity = entity;
+                                    myGrabDatas[(int)h].myOffset = pose.ToMatrix() * handMatrix.Inverse;
                                     foundObject = true;
                                 }
-
-                                //if (!myGrabDatas[(int)h].myEntity.IsValid())
-                                //{
-                                //    DrawBounds(pose, scale * 1.3f, bounds);
-                                //}
                             }
 
                             if (foundObject)
@@ -153,11 +155,11 @@ namespace VRWorld
                 myScalingCoordinateSystem.Draw(pose, Handed.Right);
             }
         }
-
-        static void DrawBounds(Pose aPose, Vec3 aScale, Bounds aBounds)
+        
+        public static void DrawBounds(Matrix aMatrix, Bounds aBounds)
         {
             Matrix boundsMatrix = Matrix.TS(aBounds.center, aBounds.dimensions);
-            Matrix globalBoundsMatrix = boundsMatrix * aPose.ToMatrix(aScale);
+            Matrix globalBoundsMatrix = boundsMatrix * aMatrix;
 
             Vec3 leftTopForward = globalBoundsMatrix * new Vec3(-0.5f, 0.5f, 0.5f);
             Vec3 rightTopForward = globalBoundsMatrix * new Vec3(0.5f, 0.5f, 0.5f);

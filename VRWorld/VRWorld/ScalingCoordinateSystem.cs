@@ -10,11 +10,11 @@ namespace VRWorld
 {
     enum eScaleAxis
     {
+        none,
         x,
         y,
         z,
         uniform,
-        none
     }
 
     internal class ScalingCoordinateSystem
@@ -80,24 +80,32 @@ namespace VRWorld
             Draw(myLessModel, anObjectPose, aHand);
         }
 
-        public eScaleAxis GetScaleAxis(Pose anObjectPose, Vec3 anObjectScale, Bounds aObjectBounds, Handed aHand)
+        public eScaleAxis GetScaleAxis(Pose anObjectPose, Vec3 anObjectScale, Bounds aObjectBounds, Handed aScalingHand)
         {
-            float xAxisRot = aHand == Handed.Right ? 180.0f : 0.0f;
+            float xAxisRot = aScalingHand == Handed.Left ? 180.0f : 0.0f;
 
             Bounds armBounds = Mesh.Cube.Bounds; //It's a cube
 
+            Matrix scaleMatrix = Matrix.S(new Vec3(1.1f,4,4));
+
             //Gettings all their global Matrixes
-            Matrix xArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
-            Matrix yArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
-            Matrix zArmMatrix = GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
+            Matrix xArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, xAxisRot, 0));
+            Matrix yArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 0, 90));
+            Matrix zArmMatrix = scaleMatrix * GetPinArmMatrix(anObjectPose, new Vec3(0, 90, 0));
             Matrix objectMatrix = anObjectPose.ToMatrix(anObjectScale + Vec3.One * 2.5f * U.cm); //Make it a bit bigger for esier grabbing
 
             //Converting the pinchPt to local space, to check collision with the bounds
-            Hand hand = Input.Hand(aHand);
+            Hand hand = Input.Hand(aScalingHand);
             Vec3 pinchPtXAxis = xArmMatrix.Inverse * hand.pinchPt;
             Vec3 pinchPtYAxis = yArmMatrix.Inverse * hand.pinchPt;
             Vec3 pinchPtZAxis = zArmMatrix.Inverse * hand.pinchPt;
             Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
+
+            //Drawing for debugging
+            Grabbing.DrawBounds(xArmMatrix, armBounds);
+            Grabbing.DrawBounds(yArmMatrix, armBounds);
+            Grabbing.DrawBounds(zArmMatrix, armBounds);
+
             if (armBounds.Contains(pinchPtXAxis))
             {
                 return eScaleAxis.x;
