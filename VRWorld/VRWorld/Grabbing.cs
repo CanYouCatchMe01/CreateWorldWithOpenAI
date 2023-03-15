@@ -180,32 +180,44 @@ namespace VRWorld
             }
         }
 
-        public static Entity GetPointingEntity(SimpleECS.World aWorld, Handed ahand)
+        //Not working
+        public static Entity GetPointingEntity(SimpleECS.World aWorld, Handed ahand, out Vec3 aClosestPoint)
         {
+            Hand hand = Input.Hand(ahand);
+
+            if (myGrabDatas[(int)ahand].myEntity.IsValid())
+            {
+                aClosestPoint = Vec3.Zero;
+                return new Entity();
+            }
+
+            Vec3 closestPoint = Vec3.Zero;
             float closestDistance = float.MaxValue;
             Entity closestEntity = new Entity();
             var query = aWorld.CreateQuery().Has(typeof(Pose), typeof(Vec3), typeof(Grabbable), typeof(Model));
-
-            Hand hand = Input.Hand(ahand);
+            
             Pose fingertip = hand[FingerId.Index, JointId.Tip].Pose;
 
-            Vec3 end = fingertip.position + fingertip.orientation * Vec3.Forward * 0.1f;
-            Color color = new Color(1,0,0);
-            Lines.Add(fingertip.position, end, color, 0.01f);
+            //Vec3 end = fingertip.position + fingertip.orientation * Vec3.Forward * 0.1f;
+            //Color color = new Color(1,0,0);
+            //Lines.Add(fingertip.position, end, color, 0.01f);
 
             query.Foreach((Entity entity, ref Pose pose, ref StereoKit.Vec3 scale, ref StereoKit.Model model) =>
             {
                 Matrix objectMatrix = pose.ToMatrix(scale);
                 Matrix fingerInObjectSpace = fingertip.ToMatrix() * objectMatrix.Inverse;
 
-                Vector3 fingerForward = fingerInObjectSpace.Pose.orientation * Vec3.Forward;
+                Vec3 fingerForward = fingerInObjectSpace.Pose.Forward;
                 Ray ray = new Ray(fingerInObjectSpace.Pose.position, fingerForward);
 
                 Bounds bounds = model.Bounds;
+                //bounds.Scale(1.5f);
 
                 if (bounds.Intersect(ray, out Vec3 at))
                 {
-                    float distance = (at - fingerInObjectSpace.Pose.position).Length;
+                    Vec3 atWorldSpace = (Matrix.T(at) * objectMatrix).Pose.position;
+                    Program.myDebugText += objectMatrix.ToString() + "\n";
+                    float distance = (atWorldSpace - fingertip.position).Length;
 
                     Program.myDebugText += "distance: " + distance.ToString() + "\n";
 
@@ -213,10 +225,12 @@ namespace VRWorld
                     {
                         closestDistance = distance;
                         closestEntity = entity;
+                        closestPoint = atWorldSpace;
                     }
                 }
             });
-
+            
+            aClosestPoint = closestPoint;
             return closestEntity;
         }
             
