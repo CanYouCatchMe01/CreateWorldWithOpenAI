@@ -118,79 +118,93 @@ namespace VRWorld
         static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
             JObject JResponce = JObject.Parse(aResponce);
-            JArray JObjects = (JArray)JResponce["add objects"];
+            JArray JAddObjects = (JArray)JResponce["add objects"];
             JArray JRemove = (JArray)JResponce["remove"];
 
-            if (JObjects == null)
+            //Add
+            if (JAddObjects != null)
             {
-                return;
+                int[] handCount = new int[(int)Handed.Max] { 0, 0 };
+
+                foreach (JObject JObject in JAddObjects)
+                {
+                    int count = 1;
+                    if (JObject.TryGetValue("count", out JToken JCount))
+                    {
+                        count = (int)JCount;
+                    }
+
+                    Handed hand = Handed.Right;
+                    if (JObject.TryGetValue("hand", out JToken JHand))
+                    {
+                        if (JHand.ToString().Equals("left", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            hand = Handed.Left;
+                        }
+                    }
+
+                    Material material = Material.UI;
+                    StereoKit.Model model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+
+                    Vec3 scale = Vec3.One * 5.0f * U.cm;
+                    StereoKit.Color color = StereoKit.Color.White;
+
+                    JObject.TryGetValue("shape", out JToken JShape);
+                    JObject.TryGetValue("color", out JToken JColor);
+
+                    //Mesh
+                    if (JShape != null)
+                    {
+                        string str = JShape.ToString();
+
+                        if (str == "cube")
+                        {
+                            model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+                        }
+                        else if (str == "sphere")
+                        {
+                            model = StereoKit.Model.FromMesh(Mesh.Sphere, material);
+                        }
+                        else if (str == "cylinder")
+                        {
+                            Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
+                            model = StereoKit.Model.FromMesh(cylinder, material);
+                        }
+                        //continue with more meshes
+                    }
+                    //Color
+                    if (JColor != null)
+                    {
+                        color = JSONConverter.FromJSONColor((JObject)JColor);
+                    }
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        //Pose
+                        Pose pose = Pose.Identity;
+                        Vec3 offset = new Vec3(0, 4, -7 * handCount[(int)hand]) * U.cm;
+                        Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
+                        pose.position = matrixOffset.Pose.position;
+
+                        aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
+
+                        handCount[(int)hand]++;
+                    }
+                }
             }
 
-            int[] handCount = new int[(int)Handed.Max] { 0, 0 };
-
-            foreach (JObject JObject in JObjects)
+            //Remove
+            if (JRemove != null)
             {
-                int count = 1;
-                if(JObject.TryGetValue("count", out JToken JCount))
+                foreach (string id in JRemove)
                 {
-                    count = (int)JCount;
-                }
+                    //The id is a string in the format "index.version"
+                    string[] split = id.Split('.');
+                    int index = int.Parse(split[0]);
+                    int version = int.Parse(split[1]);
 
-                Handed hand = Handed.Right;
-                if (JObject.TryGetValue("hand", out JToken JHand))
-                {
-                    if (JHand.ToString().Equals("left", System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        hand = Handed.Left;
-                    }
-                }
-
-                Material material = Material.UI;
-                StereoKit.Model model = StereoKit.Model.FromMesh(Mesh.Cube, material);
-
-                Vec3 scale = Vec3.One * 5.0f * U.cm;
-                StereoKit.Color color = StereoKit.Color.White;
-
-                JObject.TryGetValue("shape", out JToken JShape);
-                JObject.TryGetValue("color", out JToken JColor);
-
-                //Mesh
-                if (JShape != null)
-                {
-                    string str = JShape.ToString();
-
-                    if (str == "cube")
-                    {
-                        model = StereoKit.Model.FromMesh(Mesh.Cube, material);
-                    }
-                    else if (str == "sphere")
-                    {
-                        model = StereoKit.Model.FromMesh(Mesh.Sphere, material);
-                    }
-                    else if (str == "cylinder")
-                    {
-                        Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
-                        model = StereoKit.Model.FromMesh(cylinder, material);
-                    }
-                    //continue with more meshes
-                }
-                //Color
-                if (JColor != null)
-                {
-                    color = JSONConverter.FromJSONColor((JObject)JColor);
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    //Pose
-                    Pose pose = Pose.Identity;
-                    Vec3 offset = new Vec3(0, 4, -7 * handCount[(int)hand]) * U.cm;
-                    Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
-                    pose.position = matrixOffset.Pose.position;
-                    
-                    aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
-
-                    handCount[(int)hand]++;
+                    SimpleECS.Entity entity = new SimpleECS.Entity(index, version);
+                    entity.Destroy();
                 }
             }
         }
