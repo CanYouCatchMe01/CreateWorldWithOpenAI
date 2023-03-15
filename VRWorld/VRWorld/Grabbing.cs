@@ -189,10 +189,14 @@ namespace VRWorld
             Hand hand = Input.Hand(ahand);
             Pose fingertip = hand[FingerId.Index, JointId.Tip].Pose;
 
+            Vec3 end = fingertip.position + fingertip.orientation * Vec3.Forward * 0.1f;
+            Color color = new Color(1,0,0);
+            Lines.Add(fingertip.position, end, color, 0.01f);
+
             query.Foreach((Entity entity, ref Pose pose, ref StereoKit.Vec3 scale, ref StereoKit.Model model) =>
             {
                 Matrix objectMatrix = pose.ToMatrix(scale);
-                Matrix fingerInObjectSpace = objectMatrix.Inverse * fingertip.ToMatrix();
+                Matrix fingerInObjectSpace = fingertip.ToMatrix() * objectMatrix.Inverse;
 
                 Vector3 fingerForward = fingerInObjectSpace.Pose.orientation * Vec3.Forward;
                 Ray ray = new Ray(fingerInObjectSpace.Pose.position, fingerForward);
@@ -203,6 +207,8 @@ namespace VRWorld
                 {
                     float distance = (at - fingerInObjectSpace.Pose.position).Length;
 
+                    Program.myDebugText += "distance: " + distance.ToString() + "\n";
+
                     if (distance < closestDistance)
                     {
                         closestDistance = distance;
@@ -212,7 +218,6 @@ namespace VRWorld
             });
 
             return closestEntity;
-
         }
             
         

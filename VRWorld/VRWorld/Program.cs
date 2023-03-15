@@ -62,15 +62,16 @@ namespace VRWorld
                 OpenAISpeech.Update(world);
                 Grabbing.Update(world);
                 Draw(world);
-                DrawWindows(debugWindowPose, aiWindowPose);
-
+                
                 Entity pointingEntity = Grabbing.GetPointingEntity(world, Handed.Right);
 
                 if (pointingEntity.IsValid())
                 {
                     myDebugText += "Pointing entity: " + pointingEntity.ToString() + "\n";
                 }
-                
+
+                DrawWindows(debugWindowPose, aiWindowPose);
+
             }));
 
             world.Destroy();
@@ -104,8 +105,6 @@ namespace VRWorld
                 Matrix matrix = pose.ToMatrix(scale);
                 model.Draw(matrix, color);
             });
-
-            //Input.Hand(Handed.Right).Material = Material.Unlit;
         }
 
         static void DrawWindows(Pose debugWindowPose, Pose aiWindowPose)
