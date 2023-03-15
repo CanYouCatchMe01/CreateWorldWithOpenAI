@@ -16,7 +16,7 @@ namespace VRWorld
 
     internal class Grabbing
     {
-        class GrabData
+        public class GrabData
         {
             public Matrix myOffset = Matrix.Identity;
             public Entity myEntity = new Entity();
@@ -28,6 +28,11 @@ namespace VRWorld
         static float myStartScaleDistance = 0.0f;
         static ScalingCoordinateSystem myScalingCoordinateSystem = new ScalingCoordinateSystem();
         static eScaleAxis myScaleAxis = eScaleAxis.none;
+
+        public static GrabData[] GetGrabDatas()
+        {
+            return myGrabDatas;
+        }
 
         public static void Start()
         {

@@ -30,8 +30,8 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            myAIText = "Create a json block from prompt.\nExample:\ntext: create three blue cube cubes and two white spheres on my left hand\njson:{\"objects\": [{\"count\": 3, \"hand\": \"right\", \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}, {\"count\": 2, \"hand\": \"left\", \"shape\": \"sphere\", \"color\": {\"r\": 1.0, \"g\": 1.0, \"b\": 1.0}}]}\ntext:";
-
+            myAIText = Platform.ReadFileText("Assets/AIStartText.txt");
+            
             //Azure speech
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
             speechConfig.SpeechRecognitionLanguage = "en-US";
@@ -54,9 +54,32 @@ namespace VRWorld
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     mySpeechText = e.Result.Text;
-                    myAIText += mySpeechText + myStartSequence;
+                    myAIText += mySpeechText;
+
+                    var grabDatas = Grabbing.GetGrabDatas();
+
+                    SimpleECS.Entity rightEntity = grabDatas[(int)Handed.Right].myEntity;
+                    SimpleECS.Entity leftEntity = grabDatas[(int)Handed.Left].myEntity;
+
+                    if (rightEntity.IsValid())
+                    {
+                        string id = "\"" + rightEntity.index + "." + rightEntity.version + "\"";
+                        myAIText += $". Grabbing object with id {id} in right hand";
+                    }
+                    if (leftEntity.IsValid())
+                    {
+                        string id = "\"" + leftEntity.index + "." + leftEntity.version + "\"";
+                        myAIText += $". Grabbing object with id {id} in left hand";
+                    }
+
+                    myAIText += myStartSequence; //Needs to be last
                     myGenerateTask = GenerateAIResponce(api, myAIText);
                 }
+            };
+
+            mySpeechRecognizer.Canceled += (s, e) =>
+            {
+                Log.Info($"Speech recognition canceled: {e.Reason}");
             };
 
             mySpeechRecognizer.StartKeywordRecognitionAsync(myKeywordModel).Wait();
@@ -95,7 +118,8 @@ namespace VRWorld
         static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
             JObject JResponce = JObject.Parse(aResponce);
-            JArray JObjects = (JArray)JResponce["objects"];
+            JArray JObjects = (JArray)JResponce["add objects"];
+            JArray JRemove = (JArray)JResponce["remove"];
 
             if (JObjects == null)
             {
