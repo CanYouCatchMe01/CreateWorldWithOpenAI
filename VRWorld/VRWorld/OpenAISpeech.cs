@@ -74,6 +74,7 @@ namespace VRWorld
 
                     myAIText += myStartSequence; //Needs to be last
                     myGenerateTask = GenerateAIResponce(api, myAIText);
+                    //mySpeechRecognizer.StopKeywordRecognitionAsync();
                 }
             };
 
@@ -120,6 +121,7 @@ namespace VRWorld
             JObject JResponce = JObject.Parse(aResponce);
             JArray JAddObjects = (JArray)JResponce["add objects"];
             JArray JRemove = (JArray)JResponce["remove"];
+            JArray JDuplicate = (JArray)JResponce["duplicate"];
 
             //Add
             if (JAddObjects != null)
@@ -204,7 +206,39 @@ namespace VRWorld
                     int version = int.Parse(split[1]);
 
                     SimpleECS.Entity entity = new SimpleECS.Entity(index, version);
-                    entity.Destroy();
+
+                    if (entity.IsValid())
+                    {
+                        entity.Destroy();
+                    }
+                }
+            }
+
+            //Duplicate
+            if (JDuplicate != null)
+            {
+                foreach (string id in JDuplicate)
+                {
+                    //The id is a string in the format "index.version"
+                    string[] split = id.Split('.');
+                    int index = int.Parse(split[0]);
+                    int version = int.Parse(split[1]);
+
+                    SimpleECS.Entity entity = new SimpleECS.Entity(index, version);
+                    if (entity.IsValid())
+                    {
+                        var components = entity.GetAllComponents();
+                        var types = entity.GetAllComponentTypes();
+                        int count = entity.GetComponentCount();
+
+                        SimpleECS.Entity entityCopy = aWorld.CreateEntity();
+
+                        //Copy over every component
+                        for (int i = 0; i < count; i++)
+                        {
+                            entityCopy.Set(types[i], components[i]);
+                        }
+                    }
                 }
             }
         }
