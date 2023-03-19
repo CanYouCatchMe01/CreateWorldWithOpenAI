@@ -182,15 +182,16 @@ namespace VRWorld
 
                     for (int i = 0; i < count; i++)
                     {
+                        handCount[(int)hand]++;
+
                         //Pose
                         Pose pose = Pose.Identity;
-                        Vec3 offset = new Vec3(0, 4, -7 * handCount[(int)hand]) * U.cm;
+                        int countOffset = handCount[(int)hand];
+                        Vec3 offset = new Vec3(0, 4, -7 * countOffset) * U.cm;
                         Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
                         pose.position = matrixOffset.Pose.position;
 
                         aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
-
-                        handCount[(int)hand]++;
                     }
                 }
             }
