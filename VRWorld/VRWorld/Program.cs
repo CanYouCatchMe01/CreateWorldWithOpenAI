@@ -62,16 +62,6 @@ namespace VRWorld
                 OpenAISpeech.Update(world);
                 Grabbing.Update(world);
                 Draw(world);
-                
-                Entity pointingEntity = Grabbing.GetPointingEntity(world, Handed.Right, out Vec3 at);
-                
-                if (pointingEntity.IsValid())
-                {
-                    myDebugText += "Pointing entity: " + pointingEntity.ToString() + "\n";
-                    Matrix matrix = Matrix.TS(at, Vec3.One * 0.5f * U.cm);
-                    Mesh.Sphere.Draw(Material.UI, matrix, new Color(1,0,0));
-                }
-
                 DrawWindows(debugWindowPose, aiWindowPose);
 
             }));
