@@ -4,17 +4,28 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using OpenAI_API.Completions;
 using StereoKit;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace VRWorld
 {
     internal class OpenAISpeech
     {
-        public static string myAIText { get; private set; }
-        public static string mySpeechText { get; private set; }
+        static string myAIStartText;
+
+        class Command
+        {
+            public string myUserText = "";
+            public string myAIJsonText = "";
+        };
+        
+        static List<Command> myAIHistory = new List<Command>();
+        public static string mySpeechText { get; private set; } //Just for debugging
 
         static string myStartSequence = "\njson:";
-        static string myRestartSequence = "\ntext:\n";
+        static string myRestartSequence = "\ntext:";
         
         static SpeechRecognizer mySpeechRecognizer;
         static Task<CompletionResult> myGenerateTask = null;
@@ -30,7 +41,7 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            myAIText = Platform.ReadFileText("Assets/AIStartText.txt");
+            myAIStartText = Platform.ReadFileText("Assets/AIStartText.txt");
             
             //Azure speech
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
@@ -54,7 +65,9 @@ namespace VRWorld
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     mySpeechText = e.Result.Text;
-                    myAIText += mySpeechText;
+
+                    Command command = new Command();
+                    command.myUserText = e.Result.Text;
 
                     var grabDatas = Grabbing.GetGrabDatas();
 
@@ -63,24 +76,24 @@ namespace VRWorld
 
                     if (rightEntity.IsValid())
                     {
-                        myAIText += $". Grabbing object with right hand";
+                        command.myUserText += $". Grabbing object with right hand";
                     }
                     else
                     {
-                        myAIText += $". Not grabbing object with right hand";
+                        command.myUserText += $". Not grabbing object with right hand";
                     }
                     
                     if (leftEntity.IsValid())
                     {
-                        myAIText += $". Grabbing object with in left hand";
+                        command.myUserText += $". Grabbing object with in left hand";
                     }
                     else
                     {
-                        myAIText += $". Not grabbing object with left hand";
+                        command.myUserText += $". Not grabbing object with left hand";
                     }
 
-                    myAIText += myStartSequence; //Needs to be last
-                    myGenerateTask = GenerateAIResponce(api, myAIText);
+                    myAIHistory.Add(command);
+                    myGenerateTask = GenerateAIResponce(api);
                     //mySpeechRecognizer.StopKeywordRecognitionAsync();
                 }
             };
@@ -99,18 +112,38 @@ namespace VRWorld
             {
                 string responce = myGenerateTask.Result.ToString();
                 HandleAIResponce(responce, aWorld);
-                myAIText += responce + myRestartSequence;
+
+                myAIHistory.Last().myAIJsonText = responce;
                 myGenerateTask = null;
+
+                //Don't want to fill up the history to the AI
+                int maxCommandSize = 2;
+                int commandsToRemoveCount = Math.Max(0, myAIHistory.Count - maxCommandSize); //Don't want the count to be negative
+                myAIHistory.RemoveRange(0, commandsToRemoveCount);
 
                 //Start listening again
                 mySpeechRecognizer.StartKeywordRecognitionAsync(myKeywordModel).Wait();
             }
         }
 
-        static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi, string aPrompt)
+        public static string GetTotalAIText()
         {
+            string prompt = myAIStartText;
+
+            for (int i = 0; i < myAIHistory.Count; i++)
+            {
+                prompt += myRestartSequence + myAIHistory[i].myUserText + myStartSequence + myAIHistory[i].myAIJsonText;
+            }
+
+            return prompt;
+        }
+
+        static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi)
+        {
+            string prompt = GetTotalAIText();
+
             var request = new CompletionRequest(
-                    prompt: aPrompt,
+                    prompt: prompt,
                     model: OpenAI_API.Models.Model.CushmanCode,
                     temperature: 0.1,
                     max_tokens: 256,

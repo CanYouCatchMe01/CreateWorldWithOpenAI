@@ -1,5 +1,4 @@
 Create a json block from prompt.
-Example:
 text: create three blue cube cubes and two white spheres on my left hand
 json:{"add objects": [{"count": 3, "hand": "right", "shape": "cube", "color": {"r": 0.0, "g": 0.0, "b": 1.0}}, {"count": 2, "hand": "left", "shape": "sphere", "color": {"r": 1.0, "g": 1.0, "b": 1.0}}]}
 text: Remove the object in the right hand. Grabbing object with right hand
@@ -8,4 +7,3 @@ text: Remove the object in the right hand. Not Grabbing object with right hand
 json:{"remove" : []}
 text: copy the object in my left hand. Grabbing object with in left hand
 json:{"duplicate": ["left"]}
-text:

@@ -112,7 +112,7 @@ namespace VRWorld
                 UI.WindowBegin("Open AI window", ref aiWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
                 //Get the 200 last characters of aiText
                 int showLength = 200;
-                string showText = OpenAISpeech.myAIText.Length > showLength ? "..." + OpenAISpeech.myAIText.Substring(OpenAISpeech.myAIText.Length - showLength) : OpenAISpeech.myAIText;
+                string showText = OpenAISpeech.GetTotalAIText().Length > showLength ? "..." + OpenAISpeech.GetTotalAIText().Substring(OpenAISpeech.GetTotalAIText().Length - showLength) : OpenAISpeech.GetTotalAIText();
                 UI.Text(showText);
                 UI.HSeparator();
                 UI.Label(OpenAISpeech.mySpeechText);
