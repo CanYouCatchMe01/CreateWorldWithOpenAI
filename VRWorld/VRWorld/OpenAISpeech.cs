@@ -63,13 +63,20 @@ namespace VRWorld
 
                     if (rightEntity.IsValid())
                     {
-                        string id = "\"" + rightEntity.index + "." + rightEntity.version + "\"";
-                        myAIText += $". Grabbing object with id {id} in right hand";
+                        myAIText += $". Grabbing object with right hand";
                     }
+                    else
+                    {
+                        myAIText += $". Not grabbing object with right hand";
+                    }
+                    
                     if (leftEntity.IsValid())
                     {
-                        string id = "\"" + leftEntity.index + "." + leftEntity.version + "\"";
-                        myAIText += $". Grabbing object with id {id} in left hand";
+                        myAIText += $". Grabbing object with in left hand";
+                    }
+                    else
+                    {
+                        myAIText += $". Not grabbing object with left hand";
                     }
 
                     myAIText += myStartSequence; //Needs to be last
@@ -196,21 +203,22 @@ namespace VRWorld
                 }
             }
 
+            var grabDatas = Grabbing.GetGrabDatas();
+            SimpleECS.Entity rightEntity = grabDatas[(int)Handed.Right].myEntity;
+            SimpleECS.Entity leftEntity = grabDatas[(int)Handed.Left].myEntity;
+
             //Remove
             if (JRemove != null)
             {
-                foreach (string id in JRemove)
+                foreach (string hand in JRemove)
                 {
-                    //The id is a string in the format "index.version"
-                    string[] split = id.Split('.');
-                    int index = int.Parse(split[0]);
-                    int version = int.Parse(split[1]);
-
-                    SimpleECS.Entity entity = new SimpleECS.Entity(index, version);
-
-                    if (entity.IsValid())
+                    if (hand == "right")
                     {
-                        entity.Destroy();
+                        rightEntity.Destroy();
+                    }
+                    else if (hand == "left")
+                    {
+                        leftEntity.Destroy();
                     }
                 }
             }
@@ -218,14 +226,19 @@ namespace VRWorld
             //Duplicate
             if (JDuplicate != null)
             {
-                foreach (string id in JDuplicate)
+                foreach (string hand in JDuplicate)
                 {
-                    //The id is a string in the format "index.version"
-                    string[] split = id.Split('.');
-                    int index = int.Parse(split[0]);
-                    int version = int.Parse(split[1]);
+                    SimpleECS.Entity entity = new SimpleECS.Entity();
 
-                    SimpleECS.Entity entity = new SimpleECS.Entity(index, version);
+                    if (hand == "right")
+                    {
+                        entity = rightEntity;
+                    }
+                    else if (hand == "left")
+                    {
+                        entity = leftEntity;
+                    }
+
                     if (entity.IsValid())
                     {
                         var components = entity.GetAllComponents();
