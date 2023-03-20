@@ -20,7 +20,8 @@ namespace VRWorld
             public string myUserText = "";
             public string myAIJsonText = "";
         };
-        
+
+        //A list of the previous commands, the size is around 6, becuase don't want to store too much
         static List<Command> myAIHistory = new List<Command>();
         public static string mySpeechText { get; private set; } //Just for debugging
 
@@ -117,7 +118,7 @@ namespace VRWorld
                 myGenerateTask = null;
 
                 //Don't want to fill up the history to the AI
-                int maxCommandSize = 2;
+                int maxCommandSize = 3;
                 int commandsToRemoveCount = Math.Max(0, myAIHistory.Count - maxCommandSize); //Don't want the count to be negative
                 myAIHistory.RemoveRange(0, commandsToRemoveCount);
 
@@ -245,11 +246,11 @@ namespace VRWorld
             {
                 foreach (string hand in JRemove)
                 {
-                    if (hand == "right")
+                    if (hand == "right" && rightEntity.IsValid())
                     {
                         rightEntity.Destroy();
                     }
-                    else if (hand == "left")
+                    else if (hand == "left" && leftEntity.IsValid())
                     {
                         leftEntity.Destroy();
                     }

@@ -35,21 +35,21 @@ namespace VRWorld
             }
 
             //Two yellow cubes
-            for (int i = 0; i < 2; i++)
-            {
-                Model model = Model.FromMesh(Mesh.Cube, Material.UI);
-                Pose pose = new Pose(new Vec3(0, -0, -0.3f), Quat.Identity);
-                Vec3 scale = Vec3.One * 5.0f * U.cm;
-                Color color = new Color(1, 1, 0); //yellow
+            //for (int i = 0; i < 2; i++)
+            //{
+            //    Model model = Model.FromMesh(Mesh.Cube, Material.UI);
+            //    Pose pose = new Pose(new Vec3(0, -0, -0.3f), Quat.Identity);
+            //    Vec3 scale = Vec3.One * 5.0f * U.cm;
+            //    Color color = new Color(1, 1, 0); //yellow
 
-                world.CreateEntity(model, pose, scale, color, new Grabbable());
-            }
+            //    world.CreateEntity(model, pose, scale, color, new Grabbable());
+            //}
 
             //Cordinate system
             ScalingCoordinateSystem scalingCoordinateSystem = new ScalingCoordinateSystem();
 
             //Debug window
-            Pose aiWindowPose = new Pose(0.0f, 0.09f, -0.32f, Quat.LookDir(-0.0f, 0.09f, 0.71f));
+            Pose aiWindowPose = new Pose(0.4f, 0.09f, -0.32f, Quat.LookDir(-0.7f, 0.09f, 0.71f));
             Pose debugWindowPose = new Pose(0.04f, -0.32f, -0.34f, Quat.LookDir(-0.03f, 0.64f, 0.76f));
             
             OpenAISpeech.Start();
@@ -102,11 +102,11 @@ namespace VRWorld
         static void DrawWindows(Pose debugWindowPose, Pose aiWindowPose)
         {
             //Debug window
-            {
-                UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
-                UI.Text(myDebugText);
-                UI.WindowEnd();
-            }
+            //{
+            //    UI.WindowBegin("Debug window", ref debugWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
+            //    UI.Text(myDebugText);
+            //    UI.WindowEnd();
+            //}
             //Chat window
             {
                 UI.WindowBegin("Open AI window", ref aiWindowPose, new Vec2(30, 0) * U.cm, moveType: UIMove.None);
