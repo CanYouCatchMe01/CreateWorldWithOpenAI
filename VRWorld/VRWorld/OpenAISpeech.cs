@@ -4,17 +4,29 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using OpenAI_API.Completions;
 using StereoKit;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace VRWorld
 {
     internal class OpenAISpeech
     {
-        public static string myAIText { get; private set; }
-        public static string mySpeechText { get; private set; }
+        static string myAIStartText;
+
+        class Command
+        {
+            public string myUserText = "";
+            public string myAIJsonText = "";
+        };
+
+        //A list of the previous commands, the size is around 6, becuase don't want to store too much
+        static List<Command> myAIHistory = new List<Command>();
+        public static string mySpeechText { get; private set; } //Just for debugging
 
         static string myStartSequence = "\njson:";
-        static string myRestartSequence = "\ntext:\n";
+        static string myRestartSequence = "\ntext:";
         
         static SpeechRecognizer mySpeechRecognizer;
         static Task<CompletionResult> myGenerateTask = null;
@@ -30,8 +42,8 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            myAIText = "Create a json block from prompt.\nExample:\ntext: create three blue cube cubes and two white spheres on my left hand\njson:{\"objects\": [{\"count\": 3, \"hand\": \"right\", \"shape\": \"cube\", \"color\": {\"r\": 0.0, \"g\": 0.0, \"b\": 1.0}}, {\"count\": 2, \"hand\": \"left\", \"shape\": \"sphere\", \"color\": {\"r\": 1.0, \"g\": 1.0, \"b\": 1.0}}]}\ntext:";
-
+            myAIStartText = Platform.ReadFileText("Assets/AIStartText.txt");
+            
             //Azure speech
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
             speechConfig.SpeechRecognitionLanguage = "en-US";
@@ -54,9 +66,42 @@ namespace VRWorld
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     mySpeechText = e.Result.Text;
-                    myAIText += mySpeechText + myStartSequence;
-                    myGenerateTask = GenerateAIResponce(api, myAIText);
+
+                    Command command = new Command();
+                    command.myUserText = e.Result.Text;
+
+                    var grabDatas = Grabbing.GetGrabDatas();
+
+                    SimpleECS.Entity rightEntity = grabDatas[(int)Handed.Right].myEntity;
+                    SimpleECS.Entity leftEntity = grabDatas[(int)Handed.Left].myEntity;
+
+                    if (rightEntity.IsValid())
+                    {
+                        command.myUserText += $". Grabbing object with right hand";
+                    }
+                    else
+                    {
+                        command.myUserText += $". Not grabbing object with right hand";
+                    }
+                    
+                    if (leftEntity.IsValid())
+                    {
+                        command.myUserText += $". Grabbing object with in left hand";
+                    }
+                    else
+                    {
+                        command.myUserText += $". Not grabbing object with left hand";
+                    }
+
+                    myAIHistory.Add(command);
+                    myGenerateTask = GenerateAIResponce(api);
+                    //mySpeechRecognizer.StopKeywordRecognitionAsync();
                 }
+            };
+
+            mySpeechRecognizer.Canceled += (s, e) =>
+            {
+                Log.Info($"Speech recognition canceled: {e.Reason}");
             };
 
             mySpeechRecognizer.StartKeywordRecognitionAsync(myKeywordModel).Wait();
@@ -68,18 +113,38 @@ namespace VRWorld
             {
                 string responce = myGenerateTask.Result.ToString();
                 HandleAIResponce(responce, aWorld);
-                myAIText += responce + myRestartSequence;
+
+                myAIHistory.Last().myAIJsonText = responce;
                 myGenerateTask = null;
+
+                //Don't want to fill up the history to the AI
+                int maxCommandSize = 3;
+                int commandsToRemoveCount = Math.Max(0, myAIHistory.Count - maxCommandSize); //Don't want the count to be negative
+                myAIHistory.RemoveRange(0, commandsToRemoveCount);
 
                 //Start listening again
                 mySpeechRecognizer.StartKeywordRecognitionAsync(myKeywordModel).Wait();
             }
         }
 
-        static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi, string aPrompt)
+        public static string GetTotalAIText()
         {
+            string prompt = myAIStartText;
+
+            for (int i = 0; i < myAIHistory.Count; i++)
+            {
+                prompt += myRestartSequence + myAIHistory[i].myUserText + myStartSequence + myAIHistory[i].myAIJsonText;
+            }
+
+            return prompt;
+        }
+
+        static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi)
+        {
+            string prompt = GetTotalAIText();
+
             var request = new CompletionRequest(
-                    prompt: aPrompt,
+                    prompt: prompt,
                     model: OpenAI_API.Models.Model.CushmanCode,
                     temperature: 0.1,
                     max_tokens: 256,
@@ -95,78 +160,133 @@ namespace VRWorld
         static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
             JObject JResponce = JObject.Parse(aResponce);
-            JArray JObjects = (JArray)JResponce["objects"];
+            JArray JAddObjects = (JArray)JResponce["add objects"];
+            JArray JRemove = (JArray)JResponce["remove"];
+            JArray JDuplicate = (JArray)JResponce["duplicate"];
 
-            if (JObjects == null)
+            //Add
+            if (JAddObjects != null)
             {
-                return;
+                int[] handCount = new int[(int)Handed.Max] { 0, 0 };
+
+                foreach (JObject JObject in JAddObjects)
+                {
+                    int count = 1;
+                    if (JObject.TryGetValue("count", out JToken JCount))
+                    {
+                        count = (int)JCount;
+                    }
+
+                    Handed hand = Handed.Right;
+                    if (JObject.TryGetValue("hand", out JToken JHand))
+                    {
+                        if (JHand.ToString().Equals("left", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            hand = Handed.Left;
+                        }
+                    }
+
+                    Material material = Material.UI;
+                    StereoKit.Model model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+
+                    Vec3 scale = Vec3.One * 5.0f * U.cm;
+                    StereoKit.Color color = StereoKit.Color.White;
+
+                    JObject.TryGetValue("shape", out JToken JShape);
+                    JObject.TryGetValue("color", out JToken JColor);
+
+                    //Mesh
+                    if (JShape != null)
+                    {
+                        string str = JShape.ToString();
+
+                        if (str == "cube")
+                        {
+                            model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+                        }
+                        else if (str == "sphere")
+                        {
+                            model = StereoKit.Model.FromMesh(Mesh.Sphere, material);
+                        }
+                        else if (str == "cylinder")
+                        {
+                            Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
+                            model = StereoKit.Model.FromMesh(cylinder, material);
+                        }
+                        //continue with more meshes
+                    }
+                    //Color
+                    if (JColor != null)
+                    {
+                        color = JSONConverter.FromJSONColor((JObject)JColor);
+                    }
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        handCount[(int)hand]++;
+
+                        //Pose
+                        Pose pose = Pose.Identity;
+                        int countOffset = handCount[(int)hand];
+                        Vec3 offset = new Vec3(0, 4, -7 * countOffset) * U.cm;
+                        Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
+                        pose.position = matrixOffset.Pose.position;
+
+                        aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
+                    }
+                }
             }
 
-            int[] handCount = new int[(int)Handed.Max] { 0, 0 };
+            var grabDatas = Grabbing.GetGrabDatas();
+            SimpleECS.Entity rightEntity = grabDatas[(int)Handed.Right].myEntity;
+            SimpleECS.Entity leftEntity = grabDatas[(int)Handed.Left].myEntity;
 
-            foreach (JObject JObject in JObjects)
+            //Remove
+            if (JRemove != null)
             {
-                int count = 1;
-                if(JObject.TryGetValue("count", out JToken JCount))
+                foreach (string hand in JRemove)
                 {
-                    count = (int)JCount;
-                }
-
-                Handed hand = Handed.Right;
-                if (JObject.TryGetValue("hand", out JToken JHand))
-                {
-                    if (JHand.ToString().Equals("left", System.StringComparison.OrdinalIgnoreCase))
+                    if (hand == "right" && rightEntity.IsValid())
                     {
-                        hand = Handed.Left;
+                        rightEntity.Destroy();
+                    }
+                    else if (hand == "left" && leftEntity.IsValid())
+                    {
+                        leftEntity.Destroy();
                     }
                 }
+            }
 
-                Material material = Material.UI;
-                StereoKit.Model model = StereoKit.Model.FromMesh(Mesh.Cube, material);
-
-                Vec3 scale = Vec3.One * 5.0f * U.cm;
-                StereoKit.Color color = StereoKit.Color.White;
-
-                JObject.TryGetValue("shape", out JToken JShape);
-                JObject.TryGetValue("color", out JToken JColor);
-
-                //Mesh
-                if (JShape != null)
+            //Duplicate
+            if (JDuplicate != null)
+            {
+                foreach (string hand in JDuplicate)
                 {
-                    string str = JShape.ToString();
+                    SimpleECS.Entity entity = new SimpleECS.Entity();
 
-                    if (str == "cube")
+                    if (hand == "right")
                     {
-                        model = StereoKit.Model.FromMesh(Mesh.Cube, material);
+                        entity = rightEntity;
                     }
-                    else if (str == "sphere")
+                    else if (hand == "left")
                     {
-                        model = StereoKit.Model.FromMesh(Mesh.Sphere, material);
+                        entity = leftEntity;
                     }
-                    else if (str == "cylinder")
-                    {
-                        Mesh cylinder = Mesh.GenerateCylinder(1.0f, 1.0f, Vec3.Up);
-                        model = StereoKit.Model.FromMesh(cylinder, material);
-                    }
-                    //continue with more meshes
-                }
-                //Color
-                if (JColor != null)
-                {
-                    color = JSONConverter.FromJSONColor((JObject)JColor);
-                }
 
-                for (int i = 0; i < count; i++)
-                {
-                    //Pose
-                    Pose pose = Pose.Identity;
-                    Vec3 offset = new Vec3(0, 4, -7 * handCount[(int)hand]) * U.cm;
-                    Matrix matrixOffset = Matrix.T(offset) * Input.Hand(hand).palm.ToMatrix();
-                    pose.position = matrixOffset.Pose.position;
-                    
-                    aWorld.CreateEntity(pose, model, scale, color, new Grabbable());
+                    if (entity.IsValid())
+                    {
+                        var components = entity.GetAllComponents();
+                        var types = entity.GetAllComponentTypes();
+                        int count = entity.GetComponentCount();
 
-                    handCount[(int)hand]++;
+                        SimpleECS.Entity entityCopy = aWorld.CreateEntity();
+
+                        //Copy over every component
+                        for (int i = 0; i < count; i++)
+                        {
+                            entityCopy.Set(types[i], components[i]);
+                        }
+                    }
                 }
             }
         }

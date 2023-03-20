@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using StereoKit;
 using SimpleECS;
 using System.Numerics;
+using System.ComponentModel.DataAnnotations;
 
 namespace VRWorld
 {
@@ -15,7 +16,7 @@ namespace VRWorld
 
     internal class Grabbing
     {
-        class GrabData
+        public class GrabData
         {
             public Matrix myOffset = Matrix.Identity;
             public Entity myEntity = new Entity();
@@ -28,9 +29,13 @@ namespace VRWorld
         static ScalingCoordinateSystem myScalingCoordinateSystem = new ScalingCoordinateSystem();
         static eScaleAxis myScaleAxis = eScaleAxis.none;
 
+        public static GrabData[] GetGrabDatas()
+        {
+            return myGrabDatas;
+        }
+
         public static void Start()
         {
-
         }
 
         public static void Update(SimpleECS.World aWorld)
@@ -38,7 +43,7 @@ namespace VRWorld
             Grab(aWorld);
             Scale();
             DrawCoordinateSystem();
-            VRWorld.Program.myDebugText = myScaleAxis.ToString();
+            VRWorld.Program.myDebugText += myScaleAxis.ToString() + "\n";
         }
 
         static void Grab(SimpleECS.World aWorld)
@@ -70,19 +75,15 @@ namespace VRWorld
                             Pose pose = poseBuffer[i];
                             Vec3 scale = scaleBuffer[i];
 
-                            //Debbugging size
-                            //myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
-
                             if (hand.IsJustPinched)
                             {
                                 //Getting pinch point in object bounds space for more exact collision check
-                                Matrix objectMatrix = pose.ToMatrix(scale + Vec3.One * 2.5f * U.cm);
+                                Matrix objectMatrix = pose.ToMatrix(scale);
                                 Vec3 pinchPtObjectSpace = objectMatrix.Inverse * hand.pinchPt;
                                 Bounds bounds = model.Bounds;
 
                                 if (otherGrabedEntity == entity) //Scaling with other hand
                                 {
-                                    
                                     eScaleAxis scaleAxis = myScalingCoordinateSystem.GetScaleAxis(pose, scale, model.Bounds, h);
 
                                     if (scaleAxis != eScaleAxis.none)
@@ -177,38 +178,6 @@ namespace VRWorld
                 Pose pose = rightEntity.Get<Pose>();
                 myScalingCoordinateSystem.Draw(pose, Handed.Right);
             }
-        }
-        
-        public static void DrawBounds(Matrix aMatrix, Bounds aBounds)
-        {
-            Matrix boundsMatrix = Matrix.TS(aBounds.center, aBounds.dimensions);
-            Matrix globalBoundsMatrix = boundsMatrix * aMatrix;
-
-            Vec3 leftTopForward = globalBoundsMatrix * new Vec3(-0.5f, 0.5f, 0.5f);
-            Vec3 rightTopForward = globalBoundsMatrix * new Vec3(0.5f, 0.5f, 0.5f);
-            Vec3 leftBottomForward = globalBoundsMatrix * new Vec3(-0.5f, -0.5f, 0.5f);
-            Vec3 rightBottomForward = globalBoundsMatrix * new Vec3(0.5f, -0.5f, 0.5f);
-            Vec3 leftTopBack = globalBoundsMatrix * new Vec3(-0.5f, 0.5f, -0.5f);
-            Vec3 rightTopBack = globalBoundsMatrix * new Vec3(0.5f, 0.5f, -0.5f);
-            Vec3 leftBottomBack = globalBoundsMatrix * new Vec3(-0.5f, -0.5f, -0.5f);
-            Vec3 rightBottomBack = globalBoundsMatrix * new Vec3(0.5f, -0.5f, -0.5f);
-
-            float thickness = 0.5f * U.cm;
-            Color color = Color.White;
-
-            Lines.Add(leftTopForward, rightTopForward, color, thickness);
-            Lines.Add(leftTopForward, leftBottomForward, color, thickness);
-            Lines.Add(leftTopForward, leftTopBack, color, thickness);
-            Lines.Add(rightTopForward, rightBottomForward, color, thickness);
-            Lines.Add(rightTopForward, rightTopBack, color, thickness);
-            Lines.Add(leftBottomForward, rightBottomForward, color, thickness);
-            Lines.Add(leftBottomForward, leftBottomBack, color, thickness);
-            Lines.Add(rightBottomForward, rightBottomBack, color, thickness);
-            Lines.Add(leftTopBack, rightTopBack, color, thickness);
-            Lines.Add(leftTopBack, leftBottomBack, color, thickness);
-            Lines.Add(rightTopBack, rightBottomBack, color, thickness);
-            Lines.Add(leftBottomBack, rightBottomBack, color, thickness);
-
         }
     }
 }
