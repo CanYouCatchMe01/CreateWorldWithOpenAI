@@ -2,7 +2,7 @@
 using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
-using OpenAI_API.Completions;
+using OpenAI_API.Chat;
 using StereoKit;
 using System;
 using System.Collections.Generic;
@@ -13,23 +13,14 @@ namespace VRWorld
 {
     internal class OpenAISpeech
     {
-        static string myAIStartText;
+        static List<ChatMessage> myStartChat = new List<ChatMessage>();
+        //A list of the previous chat messages, the size is around 6, becuase don't want to store too much
+        static List<ChatMessage> myHistoryChat = new List<ChatMessage>();
 
-        class Command
-        {
-            public string myUserText = "";
-            public string myAIJsonText = "";
-        };
-
-        //A list of the previous commands, the size is around 6, becuase don't want to store too much
-        static List<Command> myAIHistory = new List<Command>();
-        public static string mySpeechText { get; private set; } //Just for debugging
-
-        static string myStartSequence = "\njson:";
-        static string myRestartSequence = "\ntext:";
+        public static string mySpeechText { get; private set; } //Just for debugging. Displaying what the user says
         
         static SpeechRecognizer mySpeechRecognizer;
-        static Task<CompletionResult> myGenerateTask = null;
+        static Task<ChatResult> myGenerateTask = null;
         static KeywordRecognitionModel myKeywordModel;
 
         public static void Start()
@@ -42,8 +33,8 @@ namespace VRWorld
 
             //Open AI
             var api = new OpenAI_API.OpenAIAPI(openAiKey);
-            myAIStartText = Platform.ReadFileText("Assets/AIStartText.txt");
-            
+            CreateStartChat();
+
             //Azure speech
             var speechConfig = SpeechConfig.FromSubscription(speechKey, speechRegion);
             speechConfig.SpeechRecognitionLanguage = "en-US";
@@ -55,6 +46,7 @@ namespace VRWorld
 
             var phraseList = PhraseListGrammar.FromRecognizer(mySpeechRecognizer);
             phraseList.AddPhrase("create");
+            phraseList.AddPhrase("three");
 
             mySpeechRecognizer.Recognizing += (s, e) =>
             {
@@ -65,10 +57,8 @@ namespace VRWorld
             {
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
-                    mySpeechText = e.Result.Text;
-
-                    Command command = new Command();
-                    command.myUserText = e.Result.Text;
+                    mySpeechText = e.Result.Text; //Debug
+                    string chatText = e.Result.Text;
 
                     var grabDatas = Grabbing.GetGrabDatas();
 
@@ -77,23 +67,23 @@ namespace VRWorld
 
                     if (rightEntity.IsValid())
                     {
-                        command.myUserText += $". Grabbing object with right hand";
+                        chatText += $". Grabbing object with right hand";
                     }
                     else
                     {
-                        command.myUserText += $". Not grabbing object with right hand";
+                        chatText += $". Not grabbing object with right hand";
                     }
                     
                     if (leftEntity.IsValid())
                     {
-                        command.myUserText += $". Grabbing object with in left hand";
+                        chatText += $". Grabbing object with in left hand";
                     }
                     else
                     {
-                        command.myUserText += $". Not grabbing object with left hand";
+                        chatText += $". Not grabbing object with left hand";
                     }
 
-                    myAIHistory.Add(command);
+                    myHistoryChat.Add(new ChatMessage(ChatMessageRole.User, chatText));
                     myGenerateTask = GenerateAIResponce(api);
                     //mySpeechRecognizer.StopKeywordRecognitionAsync();
                 }
@@ -113,47 +103,66 @@ namespace VRWorld
             {
                 string responce = myGenerateTask.Result.ToString();
                 HandleAIResponce(responce, aWorld);
-
-                myAIHistory.Last().myAIJsonText = responce;
                 myGenerateTask = null;
 
-                //Don't want to fill up the history to the AI
-                int maxCommandSize = 3;
-                int commandsToRemoveCount = Math.Max(0, myAIHistory.Count - maxCommandSize); //Don't want the count to be negative
-                myAIHistory.RemoveRange(0, commandsToRemoveCount);
+                myHistoryChat.Add(new ChatMessage(ChatMessageRole.Assistant, responce));
+                
+                //Don't want to fill up the history to the AI. Removing multiple 2, the User and the Assistant.
+                int maxCommandSize = 2*2;
+                int commandsToRemoveCount = Math.Max(0, myHistoryChat.Count - maxCommandSize); //Don't want the count to be negative
+                myHistoryChat.RemoveRange(0, commandsToRemoveCount);
 
                 //Start listening again
                 mySpeechRecognizer.StartKeywordRecognitionAsync(myKeywordModel).Wait();
             }
         }
 
-        public static string GetTotalAIText()
+        public static List<ChatMessage> GetTotalAIChat()
         {
-            string prompt = myAIStartText;
-
-            for (int i = 0; i < myAIHistory.Count; i++)
-            {
-                prompt += myRestartSequence + myAIHistory[i].myUserText + myStartSequence + myAIHistory[i].myAIJsonText;
-            }
-
-            return prompt;
+            List<ChatMessage> totalChat = myStartChat.Concat(myHistoryChat).ToList();
+            return totalChat;
         }
 
-        static async Task<CompletionResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi)
+        public static string GetTotalAIChatString(int maxLength)
         {
-            string prompt = GetTotalAIText();
+            List<ChatMessage> totalChat = GetTotalAIChat();
+            string chatString = "";
+            foreach (var chat in totalChat)
+            {
+                chatString += chat.Role.ToString() + ": " + chat.Content + "\n";
+            }
 
-            var request = new CompletionRequest(
-                    prompt: prompt,
-                    model: OpenAI_API.Models.Model.CushmanCode,
-                    temperature: 0.1,
-                    max_tokens: 256,
-                    top_p: 1.0,
-                    frequencyPenalty: 0.0,
-                    presencePenalty: 0.0,
-                    stopSequences: new string[] { "text:", "json:", "\n" }
-                    );
-            var result = await anApi.Completions.CreateCompletionAsync(request);
+            string showText = chatString.Length > maxLength ? "..." + chatString.Substring(chatString.Length - maxLength) : chatString;
+
+            return showText;
+        }
+
+        //Adding a bunch of messages so the AI understand the rules
+        static void CreateStartChat()
+        {
+            myStartChat.Add(new ChatMessage(ChatMessageRole.System, @"Convert the user message to JSON. Just respond with the JSON object"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"create three blue cube cubes and two white spheres on my left hand"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""add objects"": [{""count"": 3, ""hand"": ""right"", ""shape"": ""cube"", ""color"": {""r"": 0.0, ""g"": 0.0, ""b"": 1.0}}, {""count"": 2, ""hand"": ""left"", ""shape"": ""sphere"", ""color"": {""r"": 1.0, ""g"": 1.0, ""b"": 1.0}}]}"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"Remove the object in the right hand. Grabbing object with right hand"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""remove"" : [""right""]}"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"Remove the object in the right hand. Not Grabbing object with right hand"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""remove"" : []}"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"copy the object in my left hand. Grabbing object with in left hand"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""duplicate"": [""left""]}"));
+        }
+
+        static async Task<ChatResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi)
+        {
+            var request = new ChatRequest();
+            request.Model = OpenAI_API.Models.Model.ChatGPTTurbo;
+            request.Messages = GetTotalAIChat();
+            request.Temperature = 0.7;
+            request.MaxTokens = 256;
+            request.TopP = 1.0;
+            request.FrequencyPenalty = 0.0;
+            request.PresencePenalty = 0.0;
+
+            var result = await anApi.Chat.CreateChatCompletionAsync(request);
             return result;
         }
 
