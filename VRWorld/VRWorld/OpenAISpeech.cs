@@ -18,7 +18,7 @@ namespace VRWorld
         static List<ChatMessage> myHistoryChat = new List<ChatMessage>();
 
         public static string mySpeechText { get; private set; } //Just for debugging. Displaying what the user says
-        
+
         static SpeechRecognizer mySpeechRecognizer;
         static Task<ChatResult> myGenerateTask = null;
         static KeywordRecognitionModel myKeywordModel;
@@ -47,6 +47,7 @@ namespace VRWorld
             var phraseList = PhraseListGrammar.FromRecognizer(mySpeechRecognizer);
             phraseList.AddPhrase("create");
             phraseList.AddPhrase("three");
+            phraseList.AddPhrase("object");
 
             mySpeechRecognizer.Recognizing += (s, e) =>
             {
@@ -73,7 +74,7 @@ namespace VRWorld
                     {
                         chatText += $". Not grabbing object with right hand";
                     }
-                    
+
                     if (leftEntity.IsValid())
                     {
                         chatText += $". Grabbing object with in left hand";
@@ -106,9 +107,9 @@ namespace VRWorld
                 myGenerateTask = null;
 
                 myHistoryChat.Add(new ChatMessage(ChatMessageRole.Assistant, responce));
-                
+
                 //Don't want to fill up the history to the AI. Removing multiple 2, the User and the Assistant.
-                int maxCommandSize = 2*2;
+                int maxCommandSize = 2 * 2;
                 int commandsToRemoveCount = Math.Max(0, myHistoryChat.Count - maxCommandSize); //Don't want the count to be negative
                 myHistoryChat.RemoveRange(0, commandsToRemoveCount);
 
@@ -123,24 +124,23 @@ namespace VRWorld
             return totalChat;
         }
 
-        public static string GetTotalAIChatString(int maxLength)
+        public static string GetTotalAIChatString(int lastMessageNumber)
         {
             List<ChatMessage> totalChat = GetTotalAIChat();
+            List<ChatMessage> lastChat = totalChat.Skip(totalChat.Count() - lastMessageNumber).ToList();
+
             string chatString = "";
-            foreach (var chat in totalChat)
+            foreach (var chat in lastChat)
             {
                 chatString += chat.Role.ToString() + ": " + chat.Content + "\n";
             }
 
-            string showText = chatString.Length > maxLength ? "..." + chatString.Substring(chatString.Length - maxLength) : chatString;
-
-            return showText;
+            return chatString;
         }
 
         //Adding a bunch of messages so the AI understand the rules
         static void CreateStartChat()
         {
-            myStartChat.Add(new ChatMessage(ChatMessageRole.System, @"Convert the user message to JSON. Just respond with the JSON object"));
             myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"create three blue cube cubes and two white spheres on my left hand"));
             myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""add objects"": [{""count"": 3, ""hand"": ""right"", ""shape"": ""cube"", ""color"": {""r"": 0.0, ""g"": 0.0, ""b"": 1.0}}, {""count"": 2, ""hand"": ""left"", ""shape"": ""sphere"", ""color"": {""r"": 1.0, ""g"": 1.0, ""b"": 1.0}}]}"));
             myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"Remove the object in the right hand. Grabbing object with right hand"));
@@ -149,6 +149,7 @@ namespace VRWorld
             myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""remove"" : []}"));
             myStartChat.Add(new ChatMessage(ChatMessageRole.User, @"copy the object in my left hand. Grabbing object with in left hand"));
             myStartChat.Add(new ChatMessage(ChatMessageRole.Assistant, @"{""duplicate"": [""left""]}"));
+            myStartChat.Add(new ChatMessage(ChatMessageRole.System, @"Convert the user message to JSON. Only respond with the JSON object. Do not apologise or write any normal text"));
         }
 
         static async Task<ChatResult> GenerateAIResponce(OpenAI_API.OpenAIAPI anApi)
@@ -157,7 +158,7 @@ namespace VRWorld
             request.Model = OpenAI_API.Models.Model.ChatGPTTurbo;
             request.Messages = GetTotalAIChat();
             request.Temperature = 0.7;
-            request.MaxTokens = 256;
+            request.MaxTokens = 1024;
             request.TopP = 1.0;
             request.FrequencyPenalty = 0.0;
             request.PresencePenalty = 0.0;
@@ -168,7 +169,18 @@ namespace VRWorld
 
         static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
-            JObject JResponce = JObject.Parse(aResponce);
+            JObject JResponce;
+
+            //If the text is not JSON, return
+            try
+            {
+                JResponce = JObject.Parse(aResponce);
+            }
+            catch (Exception anException)
+            {
+                return;
+            }
+
             JArray JAddObjects = (JArray)JResponce["add objects"];
             JArray JRemove = (JArray)JResponce["remove"];
             JArray JDuplicate = (JArray)JResponce["duplicate"];
