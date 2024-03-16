@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using StereoKit;
+﻿using StereoKit;
 using SimpleECS;
-using System.Numerics;
-using System.ComponentModel.DataAnnotations;
 
 namespace VRWorld
 {

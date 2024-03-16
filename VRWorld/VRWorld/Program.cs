@@ -109,7 +109,7 @@ class Program
                 string showText = OpenAISpeech.GetTotalAIChatString(lastMessageNumber);
                 UI.Text(showText);
                 UI.HSeparator();
-                UI.Label(OpenAISpeech.mySpeechText);
+                UI.Text(OpenAISpeech.mySpeechText);
                 UI.WindowEnd();
             }
         }
