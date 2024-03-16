@@ -3,6 +3,7 @@ using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using SimpleECS;
 using StereoKit;
 using System;
 using System.Collections.Generic;
@@ -145,12 +146,12 @@ namespace VRWorld
             myStartChat.Add(new JObject
             {
                 ["role"] = "user",
-                ["content"] = @"create three blue cube cubes and two white spheres on my left hand"
+                ["content"] = @"create three orange cube cubes and two white spheres on my left hand"
             });
             myStartChat.Add(new JObject
             {
                 ["role"] = "assistant",
-                ["content"] = @"{""add objects"": [{""count"": 3, ""hand"": ""right"", ""shape"": ""cube"", ""color"": ""0000ff""}, {""count"": 2, ""hand"": ""left"", ""shape"": ""sphere"", ""color"": ""ffffff""}]}" + stop
+                ["content"] = @"{""add objects"": [{""count"": 3, ""hand"": ""right"", ""shape"": ""cube"", ""color"": ""#ffa500""}, {""count"": 2, ""hand"": ""left"", ""shape"": ""sphere"", ""color"": ""#ffffff""}]}" + stop
             });
             //Remove
             myStartChat.Add(new JObject
@@ -189,7 +190,7 @@ namespace VRWorld
 
             JObject request = new JObject
             {
-                ["model"] = "mixtral-8x7b-32768",
+                ["model"] = "llama2-70b-4096",
                 ["messages"] = totalChatJArray,
                 ["temperature"] = 0.7,
                 ["max_tokens"] = 1024,
@@ -204,6 +205,12 @@ namespace VRWorld
 
         public static Color HexToRGBA(string hexColor)
         {
+            if(hexColor.Length < 6 || hexColor.Length > 7)
+            {
+                Log.Err("Hex color must be 6 characters long");
+                return Color.Black;
+            }
+
             // Remove leading hash character, if it exists
             if (hexColor.StartsWith("#"))
             {
@@ -228,7 +235,25 @@ namespace VRWorld
             return new Color(R, G, B, 1);
         }
 
-        static void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
+        static void Duplicate(SimpleECS.Entity anEntity, SimpleECS.World aWorld)
+        {
+            if (anEntity.IsValid())
+            {
+                var components = anEntity.GetAllComponents();
+                var types = anEntity.GetAllComponentTypes();
+                int count = anEntity.GetComponentCount();
+
+                SimpleECS.Entity entityCopy = aWorld.CreateEntity();
+
+                //Copy over every component
+                for (int i = 0; i < count; i++)
+                {
+                    entityCopy.Set(types[i], components[i]);
+                }
+            }
+        }
+
+        static async void HandleAIResponce(string aResponce, SimpleECS.World aWorld)
         {
             string splitResponse = "";
 
@@ -362,6 +387,11 @@ namespace VRWorld
                     {
                         leftEntity.Destroy();
                     }
+                    else if (hand == "both" && rightEntity.IsValid() && leftEntity.IsValid())
+                    {
+                        rightEntity.Destroy();
+                        leftEntity.Destroy();
+                    }
                 }
             }
 
@@ -370,30 +400,18 @@ namespace VRWorld
             {
                 foreach (string hand in JDuplicate)
                 {
-                    SimpleECS.Entity entity = new SimpleECS.Entity();
-
                     if (hand == "right")
                     {
-                        entity = rightEntity;
+                        Duplicate(rightEntity, aWorld);
                     }
                     else if (hand == "left")
                     {
-                        entity = leftEntity;
+                        Duplicate(leftEntity, aWorld);
                     }
-
-                    if (entity.IsValid())
+                    else if (hand == "both")
                     {
-                        var components = entity.GetAllComponents();
-                        var types = entity.GetAllComponentTypes();
-                        int count = entity.GetComponentCount();
-
-                        SimpleECS.Entity entityCopy = aWorld.CreateEntity();
-
-                        //Copy over every component
-                        for (int i = 0; i < count; i++)
-                        {
-                            entityCopy.Set(types[i], components[i]);
-                        }
+                        Duplicate(rightEntity, aWorld);
+                        Duplicate(leftEntity, aWorld);
                     }
                 }
             }
