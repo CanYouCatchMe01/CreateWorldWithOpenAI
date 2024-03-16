@@ -10,54 +10,37 @@ namespace VRWorld
 {
     internal class JSONConverter
     {
-        //Vec3
-        public static Vec3 FromJSONVec3(JObject someData)
+        public static Color HexToRGBA(string hexColor)
         {
-            Vec3 result = new Vec3((float)someData.GetValue("x"), (float)someData.GetValue("y"), (float)someData.GetValue("z"));
-            return result;
-        }
+            // Remove leading hash character, if it exists
+            if (hexColor.StartsWith("#"))
+            {
+                hexColor = hexColor.Substring(1);
+            }
 
-        public static JObject ToJSON(Vec3 someData)
-        {
-            JObject result = new JObject();
-            result.Add("x", someData.x);
-            result.Add("y", someData.y);
-            result.Add("z", someData.z);
-            return result;
+            // Parse the hex color string into three separate hex strings
+            string hexRed = hexColor.Substring(0, 2);
+            string hexGreen = hexColor.Substring(2, 2);
+            string hexBlue = hexColor.Substring(4, 2);
+
+            // Convert each hex string into a byte value
+            byte r = Convert.ToByte(hexRed, 16);
+            byte g = Convert.ToByte(hexGreen, 16);
+            byte b = Convert.ToByte(hexBlue, 16);
+
+            // Divide each byte value by 255 to get a value between 0 and 1
+            float R = (float)r / 255.0f;
+            float G = (float)g / 255.0f;
+            float B = (float)b / 255.0f;
+
+            return new Color(R, G, B, 1);
         }
 
         //Color
         public static Color FromJSONColor(JObject someData)
         {
-            Color result = new Color((float)someData.GetValue("r"), (float)someData.GetValue("g"), (float)someData.GetValue("b"));
+            Color result = HexToRGBA(someData.ToString());
             return result;
         }
-
-        public static JObject ToJSON(Color someData)
-        {
-            JObject result = new JObject();
-            result.Add("r", someData.r);
-            result.Add("g", someData.g);
-            result.Add("b", someData.b);
-            return result;
-        }
-
-        //Quaternion
-        public static Quat FromJSONQuat(JObject someData)
-        {
-            Quat result = new Quat((float)someData.GetValue("x"), (float)someData.GetValue("y"), (float)someData.GetValue("z"), (float)someData.GetValue("w"));
-            return result;
-        }
-
-        public static JObject ToJSON(Quat someData)
-        {
-            JObject result = new JObject();
-            result.Add("x", someData.x);
-            result.Add("y", someData.y);
-            result.Add("z", someData.z);
-            result.Add("w", someData.w);
-            return result;
-        }
-
     }
 }

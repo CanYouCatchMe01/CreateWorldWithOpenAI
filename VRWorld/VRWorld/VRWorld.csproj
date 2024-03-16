@@ -1,31 +1,30 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<OutputType>Exe</OutputType>
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <UserSecretsId>2388d914-8018-4fd6-a75e-a4531e9a1eae</UserSecretsId>
-  </PropertyGroup>
+		<ApplicationIcon>Platforms\Net\App.ico</ApplicationIcon>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.26.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
-    <PackageReference Include="OpenAI" Version="1.6.0" />
-    <PackageReference Include="StereoKit" Version="0.3.*" />
-  </ItemGroup>
+		<UserSecretsId>8e44d264-9218-42af-a214-791cad73cb26</UserSecretsId>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="Assets\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<!--Don't compile Android code in this project, but do show it in the
+		    explorer window.-->
+		<Compile Remove="**\*.Android.cs" />
+		<Compile Remove="Platforms\Android\**" />
+		<None Include="**\*.Android.cs" />
+		<None Include="Platforms\Android\**" />
 
-  <ItemGroup>
-    <None Remove="Assets\floor.hlsl" />
-  </ItemGroup>
+		<Compile Remove="Projects\**" />
+		<EmbeddedResource Remove="Projects\**" />
+		<None Remove="Projects\**" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <SKShader Include="Assets\floor.hlsl" />
-  </ItemGroup>
-
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.36.0" />
+	  <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	  <PackageReference Include="StereoKit" Version="0.3.8" />
+	</ItemGroup>
 </Project>
-
